@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 if [ -d ./build ]; then
     echo "Build directory exists"
 else
