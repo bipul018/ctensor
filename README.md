@@ -50,7 +50,7 @@ Perform element-wise operations on tensors:
 
 `Tensor t1 = tensor_random(allocr, 0.f, 100.f, DIM);`
 
-### 5. **Stacking Tensors**
+### 5. **Creating Tensors on Stack**
 - Create and initialize stack-based tensors with multi-dimensional data.
 - Example:
 
