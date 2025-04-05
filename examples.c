@@ -52,7 +52,7 @@ void stack_run(void){
 
   {
     printf("Example with 3D tensor\n");
-    Tensor t = MAKE_STACK_TENSOR(({{{1,2}, {2,3}, {DIM}, {4,5}},
+    Tensor t = MAKE_STACK_TENSOR(({{{1,2}, {2,3}, {3,4}, {4,5}},
 				   {{-3,2}, {-8,7}, {-9,8}, {0,-9}},
 				   {{1,8}, {4,-2}, {7,-3}, {3,3}}}),
       3,4,2);
