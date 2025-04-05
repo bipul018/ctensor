@@ -102,10 +102,16 @@ Showcases element-wise arithmetic operations:
 ## Getting Started
 
 To use this library:
-1. Include the required headers:
+1. Ensure the utilities library is downloaded from [[https://github.com/bipul018/c-utils]]
+
+2. Clone this repo or download the files `tensor.h` and `tensor.c`
+
+3. Include the required headers:
 
 `#include "tensor.h"`
 
-2. Use the provided functions to create and manipulate tensors.
+4. Use the provided functions to create and manipulate tensors.
+
+5. Compile tensor.c along with your files.
 
 ---
