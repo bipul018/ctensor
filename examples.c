@@ -40,13 +40,11 @@ void arith_run(void){
   printf("\n=\n");
   tensor_print(allocr, t5);
 
-
-
-
-
-  tensor_free(allocr, &t1);
-  tensor_free(allocr, &t2);
+  tensor_free(allocr, &t5);
+  tensor_free(allocr, &t4);
   tensor_free(allocr, &t3);
+  tensor_free(allocr, &t2);
+  tensor_free(allocr, &t1);
 }
 
 void stack_run(void){
