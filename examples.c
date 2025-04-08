@@ -102,11 +102,11 @@ void base_run(void){
   print_tensor_inx(t.stride);
 
 
-  tensor_inx(t, 1,1,1) = 34;
-  tensor_inx(t, 1,1,2) = 35;
-  tensor_inx(t, 0,0,0) = 12;
-  tensor_inx(t, 1,0,0) = 13;
-  tensor_inx(t, 0,0,1) = -3;
+  tensor_get(t, 1,1,1) = 34;
+  tensor_get(t, 1,1,2) = 35;
+  tensor_get(t, 0,0,0) = 12;
+  tensor_get(t, 1,0,0) = 13;
+  tensor_get(t, 0,0,1) = -3;
 
   printf("\nTensor: \n");
   tensor_print(allocr, t);
@@ -124,7 +124,7 @@ void base_run(void){
   for_range(uptr, i, 0, slice_inx(t.shape, 0)){
     for_range(uptr, j, 0, slice_inx(t.shape, 1)){
       for_range(uptr, k, 0, slice_inx(t.shape, 2)){
-	printf("(%zu, %zu, %zu) => %f\t", i, j, k, tensor_inx(t, i, j, k));
+	printf("(%zu, %zu, %zu) => %f\t", i, j, k, tensor_get(t, i, j, k));
       }
     }
   }

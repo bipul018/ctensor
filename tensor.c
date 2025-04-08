@@ -73,7 +73,7 @@ Tensor tensor_create_(Alloc_Interface allocr, f32 fill_elem, Tensor_Inx shape){
 }
 
 
-f32* tensor_inx_ptr_(Tensor t, Tensor_Inx inx){
+f32* tensor_get_ptr_(Tensor t, Tensor_Inx inx){
   // offset = sum(inx_i * stride_i), inx_i < shape_i
   uptr offset = 0;
   // TODO:: Dont assert, return nullptr or something
@@ -122,7 +122,7 @@ Tensor tensor_contiguous(Alloc_Interface allocr, Tensor t){
 
   Tensor_Iter iter = tensor_iter_init(allocr, t);
   while(tensor_iter_next(&iter)){
-    *tensor_inx_ptr_(newt, iter.inx) = *tensor_inx_ptr_(t, iter.inx);
+    *tensor_get_ptr_(newt, iter.inx) = *tensor_get_ptr_(t, iter.inx);
   }
   tensor_iter_deinit(allocr, &iter);
 
@@ -167,7 +167,7 @@ void tensor_print(Alloc_Interface allocr, Tensor t){
 
     // Print index element
     if(zeros == 0) printf(", ");
-    printf("%f", *tensor_inx_ptr_(t, inxs));
+    printf("%f", *tensor_get_ptr_(t, inxs));
 
     // Increment the top index, if oversize, overflow it
     // For each overflowed dimension, print ]\n
@@ -204,9 +204,9 @@ Tensor tensor_elemwise_op(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tens
 
   Tensor_Iter iter = tensor_iter_init(allocr, ans);
   while(tensor_iter_next(&iter)){
-    *tensor_inx_ptr_(ans, iter.inx) =
-      op(*tensor_inx_ptr_(t1, iter.inx),
-	 *tensor_inx_ptr_(t2, iter.inx));
+    *tensor_get_ptr_(ans, iter.inx) =
+      op(*tensor_get_ptr_(t1, iter.inx),
+	 *tensor_get_ptr_(t2, iter.inx));
   }
   tensor_iter_deinit(allocr, &iter);
   return ans;
