@@ -1,24 +1,24 @@
 #include <stdio.h>
 #include "tensor.h"
+#include "tester.h"
 
-void base_run(void);
-void stack_run(void);
-void arith_run(void);
+int base_run(int argc, const char* argv[]);
+int stack_run(int argc, const char* argv[]);
+int arith_run(int argc, const char* argv[]);
 
-int main(void){
-  printf("\n#########################################################################\n");
-  base_run();
-  printf("\n#########################################################################\n");
-  stack_run();
-  printf("\n#########################################################################\n");
-  printf("\n#########################################################################\n");
-  arith_run();
-  printf("\n#########################################################################\n");
-  return 0;
+int main(int argc, const const char* argv[]){
+  TestCase cases[] = {
+    {.entry_fxn = base_run, .test_name = "baseops"},
+    {.entry_fxn = stack_run, .test_name = "onstack"},
+    {.entry_fxn = arith_run, .test_name = "somearith"},
+  };
+  const size_t test_count = _countof(cases);
+  return run_test(cases, _countof(cases),
+		  "tests", "build/tests",
+		  argc, argv);
 }
- 
 
-void arith_run(void){
+int arith_run(int argc, const char* argv[]){
   const Alloc_Interface allocr = gen_std_allocator();
 
 #define DIM 3,4
@@ -47,7 +47,7 @@ void arith_run(void){
   tensor_free(allocr, &t1);
 }
 
-void stack_run(void){
+int stack_run(int argc, const char* argv[]){
   const Alloc_Interface allocr = gen_std_allocator();
 
   {
@@ -89,7 +89,7 @@ void stack_run(void){
 }
 
 
-void base_run(void){
+int base_run(int argc, const char* argv[]){
 
   const Alloc_Interface allocr = gen_std_allocator();
 
