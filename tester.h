@@ -32,7 +32,7 @@ static void copy_file_stream(FILE* destFile, FILE* sourceFile){
     return (exit_code);				\
   }while(0)
 
-static void compare_files(FILE *file1, FILE *file2) {
+static bool compare_files(FILE *file1, FILE *file2) {
   fseek(file1, 0, SEEK_SET);
   fseek(file2, 0, SEEK_SET);
   char ch1, ch2;
@@ -50,16 +50,18 @@ static void compare_files(FILE *file1, FILE *file2) {
     if (ch1 != ch2) {
       error++;
       printf("Line Number: %d, Error Position: %d\n", line, pos);
-      return;
+      return false;
     }
   }
 
   if (ch1 != EOF) {
     printf("File 1 has more content.\n");
+    return false;
   } else if (ch2 != EOF) {
     printf("File 2 has more content.\n");
+    return false;
   }
-
+  return true;
 }
 
 static char* concat_strings(const char* strings[], size_t count){
@@ -239,12 +241,13 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
       err_and_ret(-1, "Error: Couldnot open file `%s` for reading test cases\n", actual_err_file_name);
     }
 
-    printf("Comparing with `%s` and `%s`\n",
-	   actual_out_file_name, actual_err_file_name);
-
     // Now compare contents
-    compare_files(actual_out_file, out_file);
-    compare_files(actual_err_file, err_file);
+    if(compare_files(actual_out_file, out_file) &&
+       compare_files(actual_err_file, err_file)){
+      printf("Test passed\n");
+    } else {
+      printf("Test failed\n");
+    }
   }
 
   fclose(actual_out_file);

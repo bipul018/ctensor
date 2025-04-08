@@ -46,18 +46,25 @@ echo "Compiling examples file..."
 $CC -I$UTILS_PATH ./build/tensor.obj examples.c -o ./build/examples
 echo "Compiled!"
 
+echo_cmd="echo"
+for arg in "$@"; do
+    if [[ "$arg" == "noecho" ]]; then
+	echo_cmd=""
+    fi
+done
+
 # Optionally test all if commanded
 for arg in "$@"; do
     if [[ "$arg" =~ ^record: ]]; then
 	case_name=${arg#record:}
 
 	echo "Recording test case: $case_name"
-	./build/examples $case_name echo record
+	./build/examples $case_name $echo_cmd record
     fi	
     if [[ "$arg" =~ ^test: ]]; then
 	case_name=${arg#test:}
 
 	echo "Running test case: $case_name"
-	./build/examples $case_name echo
+	./build/examples $case_name $echo_cmd
     fi
 done
