@@ -19,6 +19,9 @@ struct Tensor {
   // TODO:: Here, you have to store 'number of dimensions' twice, fix that
   Tensor_Inx shape;
   Tensor_Inx stride;
+  // a flag to denote if this tensor owns the storage too
+  // TODO:: Make some external 'manager' later, or make reference counting
+  bool owner;
 };
 
 

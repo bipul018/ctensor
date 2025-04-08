@@ -43,6 +43,7 @@ static Tensor tensor_alloc(Alloc_Interface allocr, Tensor_Inx shape){
     .storage = SLICE_ALLOC(allocr, f32, size),
     .shape = SLICE_ALLOC(allocr, uptr, shape.count),
     .stride = SLICE_ALLOC(allocr, uptr, shape.count),
+    .owner = true,
   };
   MEMCHK(t.storage.data);
   MEMCHK(t.shape.data);
@@ -94,7 +95,8 @@ bool tensor_inx_in_range(Tensor_Inx inxs, Tensor_Inx shape){
 }
 
 void tensor_free(Alloc_Interface allocr, Tensor* t){
-  SLICE_FREE(allocr, t->storage);
+  if(allocr->owner) SLICE_FREE(allocr, t->storage);
+  allocr->owner = false;
   SLICE_FREE(allocr, t->shape);
   SLICE_FREE(allocr, t->stride);
 }
