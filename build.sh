@@ -7,6 +7,13 @@ else
     mkdir ./build
 fi
 
+if [ -d ./build/tests ]; then
+    echo "Tests directory exists"
+else
+    echo "Tests directory doesnot exist, creating... "
+    mkdir ./build/tests
+fi
+
 
 # Check if UTILS_PATH is empty or not set
 if [[ -z "$UTILS_PATH" ]]; then
@@ -38,4 +45,19 @@ $CC -c -I$UTILS_PATH tensor.c -o ./build/tensor.obj
 echo "Compiling examples file..."
 $CC -I$UTILS_PATH ./build/tensor.obj examples.c -o ./build/examples
 echo "Compiled!"
-   
+
+# Optionally test all if commanded
+for arg in "$@"; do
+    if [[ "$arg" =~ ^record: ]]; then
+	case_name=${arg#record:}
+
+	echo "Recording test case: $case_name"
+	./build/examples $case_name echo record
+    fi	
+    if [[ "$arg" =~ ^test: ]]; then
+	case_name=${arg#test:}
+
+	echo "Running test case: $case_name"
+	./build/examples $case_name echo
+    fi
+done
