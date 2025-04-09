@@ -16,9 +16,10 @@ DEF_SLICE(f32);
 typedef struct Tensor Tensor;
 struct Tensor {
   f32_Slice storage;
-  // TODO:: Here, you have to store 'number of dimensions' twice, fix that
+  // TODO:: Here, you have to store 'number of dimensions' thrice, fix that
   Tensor_Inx shape;
   Tensor_Inx stride;
+  Tensor_Inx offset;
   // a flag to denote if this tensor owns the storage too
   // TODO:: Make some external 'manager' later, or make reference counting
   bool owner;
@@ -89,10 +90,13 @@ Tensor tensor_assume_contiguous_fix_stride(Tensor in);
   tensor_assume_contiguous_fix_stride					\
   ((Tensor){.storage = {.data = ((f32*)((f32 FOR_EACH_VA(INDEX_ARG_FE, __VA_ARGS__)) JUST_DO_NOTHING tensor_elems)), \
 			.count = (1 FOR_EACH_VA(PROD_FE, __VA_ARGS__)),}, \
-	    .shape = {.data = ((uptr[]){__VA_ARGS__}),			\
-		      .count = VA_NARGS(__VA_ARGS__),},			\
-	    .stride = {.data = ((uptr[]){__VA_ARGS__}),			\
-		       .count = VA_NARGS(__VA_ARGS__),},		\
-  })
+    .shape = {.data = ((uptr[]){__VA_ARGS__}),				\
+	      .count = VA_NARGS(__VA_ARGS__),},				\
+	      .stride = {.data = ((uptr[]){__VA_ARGS__}),		\
+			 .count = VA_NARGS(__VA_ARGS__),},		\
+	      .owner = true,						\
+	      .offset = {.data = ((uptr[VA_NARGS(__VA_ARGS__)]){0}),	\
+			 .count = VA_NARGS(__VA_ARGS__),}		\
+	    })
    
 #endif //TENSOR_H

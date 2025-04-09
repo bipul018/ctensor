@@ -43,11 +43,13 @@ static Tensor tensor_alloc(Alloc_Interface allocr, Tensor_Inx shape){
     .storage = SLICE_ALLOC(allocr, f32, size),
     .shape = SLICE_ALLOC(allocr, uptr, shape.count),
     .stride = SLICE_ALLOC(allocr, uptr, shape.count),
+    .offset = SLICE_ALLOC(allocr, uptr, shape.count),
     .owner = true,
   };
   MEMCHK(t.storage.data);
   MEMCHK(t.shape.data);
   MEMCHK(t.stride.data);
+  MEMCHK(t.offset.data);
   return t;
 }
 
@@ -67,6 +69,7 @@ Tensor tensor_create_(Alloc_Interface allocr, f32 fill_elem, Tensor_Inx shape){
 
   // Form the shapes and strides
   memcpy(t.shape.data, shape.data, uptr_slice_bytes(shape));
+  (void)memset(t.offset.data, 0, uptr_slice_bytes(t.offset));
 
   tensor_force_fix_stride(t.shape, t.stride);
   return t;
@@ -80,7 +83,7 @@ f32* tensor_get_ptr_(Tensor t, Tensor_Inx inx){
   assert(("Shape of tensors cannot be different", inx.count == t.shape.count));
   for_slice(inx, i){
     assert(("Index must be inside size", inx.data[i] < t.shape.data[i]));
-    offset += inx.data[i] * t.stride.data[i];
+    offset += (t.offset.data[i] + inx.data[i]) * t.stride.data[i];
   }
   assert(("Should not have happened", offset < t.storage.count));
   return &t.storage.data[offset];
@@ -95,10 +98,11 @@ bool tensor_inx_in_range(Tensor_Inx inxs, Tensor_Inx shape){
 }
 
 void tensor_free(Alloc_Interface allocr, Tensor* t){
-  if(allocr->owner) SLICE_FREE(allocr, t->storage);
-  allocr->owner = false;
+  if(t->owner) SLICE_FREE(allocr, t->storage);
+  t->owner = false;
   SLICE_FREE(allocr, t->shape);
   SLICE_FREE(allocr, t->stride);
+  SLICE_FREE(allocr, t->offset);
 }
 
 Tensor tensor_dupe(Alloc_Interface allocr, Tensor t){
@@ -106,16 +110,20 @@ Tensor tensor_dupe(Alloc_Interface allocr, Tensor t){
     .storage = make_copy_f32_slice(allocr, t.storage),
     .shape = make_copy_uptr_slice(allocr, t.shape),
     .stride = make_copy_uptr_slice(allocr, t.stride),
+    .offset = make_copy_uptr_slice(allocr, t.offset),
+    .owner = true,
   };
   MEMCHK(out.storage.data);
   MEMCHK(out.shape.data);
   MEMCHK(out.stride.data);
+  MEMCHK(out.offset.data);
   return out;
 }
 
 Tensor tensor_contiguous(Alloc_Interface allocr, Tensor t){
   // Create equivalent sized tensor
   Tensor newt = tensor_alloc(allocr, t.shape);
+  (void)memset(newt.offset.data, 0, uptr_slice_bytes(newt.offset));
   memcpy(newt.shape.data, t.shape.data, uptr_slice_bytes(t.shape));
   // Make stride according to standard format
   tensor_force_fix_stride(newt.shape, newt.stride);
@@ -132,6 +140,7 @@ Tensor tensor_contiguous(Alloc_Interface allocr, Tensor t){
 Tensor tensor_random_(Alloc_Interface allocr, f32 min_val, f32 max_val, Tensor_Inx shape){
   Tensor rant = tensor_alloc(allocr, shape);
   memcpy(rant.shape.data, shape.data, uptr_slice_bytes(shape));
+  (void)memset(rant.offset.data, 0, uptr_slice_bytes(rant.offset));
   // Make stride according to standard format
   tensor_force_fix_stride(rant.shape, rant.stride);
 
@@ -193,11 +202,13 @@ void tensor_permute(Tensor t, uptr inx1, uptr inx2){
   if(inx1 == inx2) return;
   _swap(t.shape.data[inx1], t.shape.data[inx2]);
   _swap(t.stride.data[inx1], t.stride.data[inx2]);
+  _swap(t.offset.data[inx1], t.offset.data[inx2]);
 }
 
 Tensor tensor_elemwise_op(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tensor t2){
   assert(( "Differently shaped tensors cannot be used in elementwise operation", equal_tensor_inx(t1.shape, t2.shape)));
   Tensor ans = tensor_alloc(allocr, t1.shape);
+  (void)memset(ans.offset.data, 0, uptr_slice_bytes(ans.offset));
   memcpy(ans.shape.data, t1.shape.data, uptr_slice_bytes(t1.shape));
   // Make stride according to standard format
   tensor_force_fix_stride(ans.shape, ans.stride);
