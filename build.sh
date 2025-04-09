@@ -45,8 +45,8 @@ fi
 
 echo "Compiling core object files using $CC ..."
 $CC -c -I$UTILS_PATH -I./src/ ./src/tensor.c -o ./build/tensor.obj
-echo "Compiling examples file..."
-$CC -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/tests/examples.c -o ./build/examples
+echo "Compiling the tests..."
+$CC -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/tests/run.c -o ./build/run_tests
 echo "Compiled!"
 
 echo_cmd="echo"
@@ -62,12 +62,12 @@ for arg in "$@"; do
 	case_name=${arg#record:}
 
 	echo "Recording test case: $case_name"
-	./build/examples $case_name $echo_cmd record
+	./build/run_tests $case_name $echo_cmd record
     fi	
     if [[ "$arg" =~ ^test: ]]; then
 	case_name=${arg#test:}
 
 	echo "Running test case: $case_name"
-	./build/examples $case_name $echo_cmd
+	./build/run_tests $case_name $echo_cmd
     fi
 done
