@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+root_dir=$(dirname "$0")
+cd $root_dir
+
 if [ -d ./build ]; then
     echo "Build directory exists"
 else
@@ -18,7 +21,7 @@ fi
 # Check if UTILS_PATH is empty or not set
 if [[ -z "$UTILS_PATH" ]]; then
     # Set UTILS_PATH to the default path
-    UTILS_PATH="$(pwd)/../c-utils/"
+    UTILS_PATH="../c-utils/"
 fi
 
 # Check if the directory exists
@@ -41,9 +44,9 @@ else
 fi
 
 echo "Compiling core object files using $CC ..."
-$CC -c -I$UTILS_PATH tensor.c -o ./build/tensor.obj
+$CC -c -I$UTILS_PATH -I./src/ ./src/tensor.c -o ./build/tensor.obj
 echo "Compiling examples file..."
-$CC -I$UTILS_PATH ./build/tensor.obj examples.c -o ./build/examples
+$CC -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/tests/examples.c -o ./build/examples
 echo "Compiled!"
 
 echo_cmd="echo"
