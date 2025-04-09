@@ -50,6 +50,28 @@ static bool compare_files(FILE *file1, FILE *file2) {
     if (ch1 != ch2) {
       error++;
       printf("Line Number: %d, Error Position: %d\n", line, pos);
+      // Also print some characters:
+      const int view = 30;
+      for(int i = 0; i < 20; ++i) printf("+");
+      printf("\n");
+      for(int i = 0; i < view; ++i){
+	printf("%c", ch1);
+	ch1 = fgetc(file1);
+	if(ch1 == EOF) break;
+      }
+      printf("\n");
+      for(int i = 0; i < 20; ++i) printf("+");
+      printf("\n");
+      for(int i = 0; i < 20; ++i) printf("-");
+      printf("\n");
+      for(int i = 0; i < view; ++i){
+	printf("%c", ch2);
+	ch2 = fgetc(file2);
+	if(ch2 == EOF) break;
+      }
+      printf("\n");
+      for(int i = 0; i < 20; ++i) printf("-");
+      printf("\n");
       return false;
     }
   }
