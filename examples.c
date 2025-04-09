@@ -61,6 +61,8 @@ int stack_run(int argc, const char* argv[]){
     print_tensor_inx(t.shape);
     printf("\nStride: ");
     print_tensor_inx(t.stride);
+    printf("\nOffset: ");
+    print_tensor_inx(t.offset);
 
     printf("\nTensor: \n");
     tensor_print(allocr, t);
@@ -79,6 +81,8 @@ int stack_run(int argc, const char* argv[]){
     print_tensor_inx(t.shape);
     printf("\nStride: ");
     print_tensor_inx(t.stride);
+    printf("\nOffset: ");
+    print_tensor_inx(t.offset);
 
     printf("\nTensor: \n");
     tensor_print(allocr, t);
@@ -100,7 +104,8 @@ int base_run(int argc, const char* argv[]){
   print_tensor_inx(t.shape);
   printf("\nStride: ");
   print_tensor_inx(t.stride);
-
+  printf("\nOffset: ");
+  print_tensor_inx(t.offset);
 
   tensor_get(t, 1,1,1) = 34;
   tensor_get(t, 1,1,2) = 35;
@@ -117,6 +122,8 @@ int base_run(int argc, const char* argv[]){
   print_tensor_inx(t.shape);
   printf("\nStride: ");
   print_tensor_inx(t.stride);
+  printf("\nOffset: ");
+  print_tensor_inx(t.offset);
   printf("\n");
   tensor_print(allocr, t);
 
@@ -141,6 +148,8 @@ int base_run(int argc, const char* argv[]){
   print_tensor_inx(dt.shape);
   printf("\nStride: ");
   print_tensor_inx(dt.stride);
+  printf("\nOffset: ");
+  print_tensor_inx(dt.offset);
   printf("\n");
   tensor_print(allocr, dt);
   printf("\nTensor storage: ");
