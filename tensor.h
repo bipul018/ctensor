@@ -26,9 +26,9 @@ struct Tensor {
 
 
 void tensor_print(Alloc_Interface allocr, Tensor t);
-f32* tensor_inx_ptr_(Tensor t, Tensor_Inx inx);
-#define tensor_inx(t, ...)					\
-  (*tensor_inx_ptr_((t), MAKE_ARRAY_SLICE(uptr, __VA_ARGS__)))
+f32* tensor_get_ptr_(Tensor t, Tensor_Inx inx);
+#define tensor_get(t, ...)					\
+  (*tensor_get_ptr_((t), MAKE_ARRAY_SLICE(uptr, __VA_ARGS__)))
 
 Tensor tensor_create_(Alloc_Interface allocr, f32 fill_elem, Tensor_Inx shape);
 #define tensor_create(allocr, fill_elem, ...)				\
