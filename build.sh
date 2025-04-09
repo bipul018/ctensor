@@ -18,7 +18,7 @@ fi
 # Check if UTILS_PATH is empty or not set
 if [[ -z "$UTILS_PATH" ]]; then
     # Set UTILS_PATH to the default path
-    UTILS_PATH="$(pwd)/c-utils/"
+    UTILS_PATH="$(pwd)/../c-utils/"
 fi
 
 # Check if the directory exists
