@@ -40,6 +40,17 @@ Tensor tensor_random_(Alloc_Interface allocr, f32 min_val, f32 max_val, Tensor_I
 #define tensor_random(allocr, min_val, max_val, ...)				\
   tensor_random_((allocr), (min_val), (max_val), MAKE_ARRAY_SLICE(uptr, __VA_ARGS__))
 
+// [start, end)
+Tensor tensor_slice_(Alloc_Interface allocr, Tensor src, Tensor_Inx start, Tensor_Inx end);
+// Send in indexes by wrapping in a bracket 
+#define tensor_slice(allocr, tensor, start_inxs, end_inxs)		\
+  tensor_slice_((allocr), (tensor),					\
+		MAKE_ARRAY_SLICE(uptr, JUST_DO_NOTHING start_inxs),	\
+		MAKE_ARRAY_SLICE(uptr, JUST_DO_NOTHING end_inxs))
+
+// Creates a new tensor that shares the storage and has permuted indexes
+Tensor tensor_permute(Alloc_Interface allocr, Tensor t, uptr inx1, uptr inx2);
+
 
 void tensor_free(Alloc_Interface allocr, Tensor* t);
 uptr tensor_size(Tensor t);
@@ -53,8 +64,6 @@ Tensor tensor_prod(Alloc_Interface allocr, Tensor t1, Tensor t2);
 
 Tensor tensor_vadd(Alloc_Interface allocr, Tensor t1, f32 f);
 Tensor tensor_vprod(Alloc_Interface allocr, Tensor t1, f32 f);
-// Modifies dimensions of the original tensor
-void tensor_permute(Tensor t, uptr inx1, uptr inx2);
 
 // Creates a new tensor without trying to make it contiguous if original was not
 Tensor tensor_dupe(Alloc_Interface allocr, Tensor t);

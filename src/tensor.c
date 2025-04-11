@@ -196,13 +196,68 @@ void tensor_print(Alloc_Interface allocr, Tensor t){
   
 }
 
-void tensor_permute(Tensor t, uptr inx1, uptr inx2){
-  assert(("Index out of bounds", inx1 < t.shape.count));
-  assert(("Index out of bounds", inx2 < t.shape.count));
-  if(inx1 == inx2) return;
-  _swap(t.shape.data[inx1], t.shape.data[inx2]);
-  _swap(t.stride.data[inx1], t.stride.data[inx2]);
-  _swap(t.offset.data[inx1], t.offset.data[inx2]);
+Tensor tensor_permute(Alloc_Interface allocr, Tensor oldt, uptr inx1, uptr inx2){
+  assert(("Index out of bounds", inx1 < oldt.shape.count));
+  assert(("Index out of bounds", inx2 < oldt.shape.count));
+
+  Tensor newt = {
+    .storage = oldt.storage, //shares storage
+    .shape = make_copy_uptr_slice(allocr, oldt.shape),
+    .stride = make_copy_uptr_slice(allocr, oldt.stride),
+    .offset = make_copy_uptr_slice(allocr, oldt.offset),
+    .owner = false,
+  };
+
+  MEMCHK(newt.shape.data);
+  MEMCHK(newt.stride.data);
+  MEMCHK(newt.offset.data);
+
+  if(inx1 != inx2){
+    _swap(newt.shape.data[inx1], newt.shape.data[inx2]);
+    _swap(newt.stride.data[inx1], newt.stride.data[inx2]);
+    _swap(newt.offset.data[inx1], newt.offset.data[inx2]);
+  }
+  return newt;
+}
+
+Tensor tensor_slice_(Alloc_Interface allocr, Tensor src,
+		     Tensor_Inx start, Tensor_Inx end){
+  // Assert if indexes are of valid dimension
+  assert(("Dimensions of starting tensor index must be same as tensor dimension",
+	  start.count == src.shape.count));
+  assert(("Dimensions of ending tensor index must be same as tensor dimension",
+	  end.count == src.shape.count));
+
+  // Assert if the indexes are in valid ranges
+  for_slice(src.shape, i){
+    assert(("Starting index cannot be greater or equal to size of tensor",
+	    start.data[i] < src.shape.data[i]));
+    assert(("Starting index cannot be greater than size of tensor",
+	    end.data[i] <= src.shape.data[i]));
+  }
+
+  // Create new non-owning tensor
+
+  Tensor dst = {
+    .storage = src.storage, //shares storage
+    .shape = make_copy_uptr_slice(allocr, src.shape),
+    .stride = make_copy_uptr_slice(allocr, src.stride),
+    .offset = make_copy_uptr_slice(allocr, src.offset),
+    .owner = false,
+  };
+
+  MEMCHK(dst.shape.data);
+  MEMCHK(dst.stride.data);
+  MEMCHK(dst.offset.data);
+
+  // Slice-em
+  // shape = end - start, offset += start
+  for_slice(dst.shape, i){
+    dst.shape.data[i] = end.data[i] - start.data[i];
+    dst.offset.data[i] += start.data[i];
+  }
+
+  return dst;
 }
 
 Tensor tensor_elemwise_op(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tensor t2){
