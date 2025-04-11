@@ -34,19 +34,21 @@ if [[ ! -d "$UTILS_PATH" ]]; then
 fi
 
 # Find the compiler
-if command -v gcc &> /dev/null; then
-    CC='gcc'
-elif command -v clang &> /dev/null; then
-    CC='clang'
-else
-    echo "Neither gcc nor clang is installed. Please install one of them."
-    exit 1
+if [[ -z "$CC" ]]; then
+    if command -v gcc &> /dev/null; then
+	CC='gcc'
+    elif command -v clang &> /dev/null; then
+	CC='clang'
+    else
+	echo "Neither gcc nor clang is installed. Please install one of them."
+	exit 1
+    fi
 fi
 
 echo "Compiling core object files using $CC ..."
-$CC -c -I$UTILS_PATH -I./src/ ./src/tensor.c -o ./build/tensor.obj
+$CC $CFLAGS -c -I$UTILS_PATH -I./src/ ./src/tensor.c -o ./build/tensor.obj
 echo "Compiling the tests..."
-$CC -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/tests/run.c -o ./build/run_tests
+$CC $CFLAGS -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/tests/run.c -o ./build/run_tests
 echo "Compiled!"
 
 echo_cmd="echo"

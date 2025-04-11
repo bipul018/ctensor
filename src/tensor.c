@@ -27,7 +27,7 @@ static void tensor_force_fix_stride(Tensor_Inx shape, Tensor_Inx stride){
       continue;
     }
     stride.data[i] = stride.data[i+1] * shape.data[i+1];
-  }  
+  }
 }
 
 // Not to be used directly, just a helper fxn
