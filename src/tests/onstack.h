@@ -29,7 +29,7 @@ int stack_run(int argc, const char* argv[]){
 				   {{},
 				    {{-34,-35}}}}),
       2,3,4,3);
-    tensor_permute(t, 2,3);
+    tensor_permute_in_place(t, 2,3);
     printf("\nTensor storage shape: %zu", t.storage.count);
     printf("\nShape: ");
     print_tensor_inx(t.shape);

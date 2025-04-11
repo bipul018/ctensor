@@ -24,7 +24,8 @@ int base_run(int argc, const char* argv[]){
 
   printf("\nTensor: \n");
   tensor_print(allocr, t);
-  tensor_permute(t, 1, 2);
+
+  tensor_permute_in_place(t, 1, 2);
 
   printf("\nTensor Yet Again: \n");
   printf("\nShape: ");

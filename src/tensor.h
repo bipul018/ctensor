@@ -51,6 +51,8 @@ Tensor tensor_slice_(Alloc_Interface allocr, Tensor src, Tensor_Inx start, Tenso
 // Creates a new tensor that shares the storage and has permuted indexes
 Tensor tensor_permute(Alloc_Interface allocr, Tensor t, uptr inx1, uptr inx2);
 
+// Seems like this would also be a really important function
+void tensor_permute_in_place(Tensor t, uptr inx1, uptr inx2);
 
 void tensor_free(Alloc_Interface allocr, Tensor* t);
 uptr tensor_size(Tensor t);

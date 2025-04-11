@@ -196,10 +196,18 @@ void tensor_print(Alloc_Interface allocr, Tensor t){
   
 }
 
-Tensor tensor_permute(Alloc_Interface allocr, Tensor oldt, uptr inx1, uptr inx2){
-  assert(("Index out of bounds", inx1 < oldt.shape.count));
-  assert(("Index out of bounds", inx2 < oldt.shape.count));
+void tensor_permute_in_place(Tensor t, uptr inx1, uptr inx2){
+  assert(("Index out of bounds", inx1 < t.shape.count));
+  assert(("Index out of bounds", inx2 < t.shape.count));
 
+  if(inx1 != inx2){
+    _swap(t.shape.data[inx1], t.shape.data[inx2]);
+    _swap(t.stride.data[inx1], t.stride.data[inx2]);
+    _swap(t.offset.data[inx1], t.offset.data[inx2]);
+  }
+}
+
+Tensor tensor_permute(Alloc_Interface allocr, Tensor oldt, uptr inx1, uptr inx2){
   Tensor newt = {
     .storage = oldt.storage, //shares storage
     .shape = make_copy_uptr_slice(allocr, oldt.shape),
@@ -212,11 +220,8 @@ Tensor tensor_permute(Alloc_Interface allocr, Tensor oldt, uptr inx1, uptr inx2)
   MEMCHK(newt.stride.data);
   MEMCHK(newt.offset.data);
 
-  if(inx1 != inx2){
-    _swap(newt.shape.data[inx1], newt.shape.data[inx2]);
-    _swap(newt.stride.data[inx1], newt.stride.data[inx2]);
-    _swap(newt.offset.data[inx1], newt.offset.data[inx2]);
-  }
+  tensor_permute_in_place(newt, inx1, inx2);
+
   return newt;
 }
 
