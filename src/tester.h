@@ -195,6 +195,13 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
   stdout = out_file;
   stderr = err_file;
 
+  // Disable output file buffering
+  //   (This was a very very frustating bug)
+  //   (I couldnot even do traditional printf debugging)
+  //   (and gdb debugging sucks *ss)
+  setvbuf(stdout, NULL, _IONBF, 0);
+  setvbuf(stderr, NULL, _IONBF, 0); 
+
   // First run the test case and write results on the file
   int code = test_case_fxn(test_argc, test_argv);
 
@@ -277,4 +284,6 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
 
   fclose(out_file);
   fclose(err_file);
+
+  return 0;
 }
