@@ -64,8 +64,18 @@ Tensor tensor_elemwise_op(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tens
 Tensor tensor_add(Alloc_Interface allocr, Tensor t1, Tensor t2);
 Tensor tensor_prod(Alloc_Interface allocr, Tensor t1, Tensor t2);
 
-Tensor tensor_vadd(Alloc_Interface allocr, Tensor t1, f32 f);
-Tensor tensor_vprod(Alloc_Interface allocr, Tensor t1, f32 f);
+
+DEF_SLICE(Tensor);
+// Need to send in than more one tensors here
+//   This is otherwise similar to chaining operations from 'elemwise_op'
+Tensor tensor_elemwise_manyop(Alloc_Interface allocr, Tensor_Slice ts, f32_binop* op);
+
+// Vectorization like operation, left is scalar, right is elements of the tensor
+Tensor tensor_vector_op(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv);
+
+Tensor tensor_vadd(Alloc_Interface allocr, f32 f, Tensor t1);
+Tensor tensor_vprod(Alloc_Interface allocr, f32 f, Tensor t1);
+
 
 // Creates a new tensor without trying to make it contiguous if original was not
 Tensor tensor_dupe(Alloc_Interface allocr, Tensor t);
