@@ -89,3 +89,5 @@ int viewops_run(int argc, const char* argv[]){
 
   return 0;
 }
+
+#undef BOOLSTR
