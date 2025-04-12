@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include "tensor.h"
 
+// A function to use in the following test
+static float subtract_two_floats(float a, float b){
+  return a - b;
+}
+
 int arith_run(int argc, const char* argv[]){
   const Alloc_Interface allocr = gen_std_allocator();
 
@@ -41,6 +46,29 @@ int arith_run(int argc, const char* argv[]){
 	 BOOLSTR(t5_ss.storage.data == t5.storage.data));
   tensor_print(allocr, t5_ss);
 
+  // Now do permutation and arithmetic
+  // do (A + A') and (A - A') to make symmetric and anti-symmetric matrices
+  Tensor tn_sq = tensor_random(allocr, -2.f, 2.f, 3,3);
+  Tensor tn_tr = tensor_permute(allocr, tn_sq, 0, 1);
+  Tensor tn_sm = tensor_add(allocr, tn_sq, tn_tr);
+  Tensor tn_am = tensor_elemwise_op(allocr, tn_sq, subtract_two_floats, tn_tr);
+
+  printf("\nThe square matrix A: (owner=%s): \n", BOOLSTR(tn_sq.owner));
+  tensor_print(allocr, tn_sq);
+
+  printf("\nTransposition matrix A': (owner=%s) (Backed by 'tn_sq'=%s): \n", BOOLSTR(tn_tr.owner), BOOLSTR(tn_tr.storage.data == tn_sq.storage.data));
+  tensor_print(allocr, tn_tr);
+
+  printf("\nSymmetric matrix (A+A'): (owner=%s) (Backed by 'tn_sq'=%s): \n", BOOLSTR(tn_sm.owner), BOOLSTR(tn_sm.storage.data == tn_sq.storage.data));
+  tensor_print(allocr, tn_sm);
+
+  printf("\nAnti Symmetric matrix (A-A'): (owner=%s) (Backed by 'tn_sq'=%s): \n", BOOLSTR(tn_am.owner), BOOLSTR(tn_am.storage.data == tn_sq.storage.data));
+  tensor_print(allocr, tn_am);
+
+  tensor_free(allocr, &tn_am);
+  tensor_free(allocr, &tn_sm);
+  tensor_free(allocr, &tn_tr);
+  tensor_free(allocr, &tn_sq);
   tensor_free(allocr, &t5_ss);
   tensor_free(allocr, &t5_s2);
   tensor_free(allocr, &t5_s1);
