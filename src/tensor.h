@@ -150,7 +150,7 @@ Tensor tensor_contiguous(Alloc_Interface allocr, Tensor t);
 // Only to be used from the macro because standard C cannot return values from scopes
 Tensor tensor_assume_contiguous_fix_stride(Tensor in);
 #define MEMCHK(...)					\
-  assert(("Just Buy More RAM!!!", ( (__VA_ARGS__) != nullptr)))
+  assert(((void)"Just Buy More RAM!!!", ( (__VA_ARGS__) != nullptr)))
 
 
 #define INDEX_ARG_FE(N, X) [X]

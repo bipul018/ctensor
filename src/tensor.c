@@ -80,12 +80,12 @@ f32* tensor_get_ptr_(Tensor t, Tensor_Inx inx){
   // offset = sum(inx_i * stride_i), inx_i < shape_i
   uptr offset = 0;
   // TODO:: Dont assert, return nullptr or something
-  assert(("Shape of tensors cannot be different", inx.count == t.shape.count));
+  assert(((void)"Shape of tensors cannot be different", inx.count == t.shape.count));
   for_slice(inx, i){
-    assert(("Index must be inside size", inx.data[i] < t.shape.data[i]));
+    assert(((void)"Index must be inside size", inx.data[i] < t.shape.data[i]));
     offset += (t.offset.data[i] + inx.data[i]) * t.stride.data[i];
   }
-  assert(("Should not have happened", offset < t.storage.count));
+  assert(((void)"Should not have happened", offset < t.storage.count));
   return &t.storage.data[offset];
 }
 
@@ -189,8 +189,8 @@ void tensor_print(Alloc_Interface allocr, Tensor t){
 }
 
 void tensor_permute_in_place(Tensor t, uptr inx1, uptr inx2){
-  assert(("Index out of bounds", inx1 < t.shape.count));
-  assert(("Index out of bounds", inx2 < t.shape.count));
+  assert(((void)"Index out of bounds", inx1 < t.shape.count));
+  assert(((void)"Index out of bounds", inx2 < t.shape.count));
 
   if(inx1 != inx2){
     _swap(t.shape.data[inx1], t.shape.data[inx2]);
@@ -220,16 +220,16 @@ Tensor tensor_permute(Alloc_Interface allocr, Tensor oldt, uptr inx1, uptr inx2)
 Tensor tensor_slice_(Alloc_Interface allocr, Tensor src,
 		     Tensor_Inx start, Tensor_Inx end){
   // Assert if indexes are of valid dimension
-  assert(("Dimensions of starting tensor index must be same as tensor dimension",
+  assert(((void)"Dimensions of starting tensor index must be same as tensor dimension",
 	  start.count == src.shape.count));
-  assert(("Dimensions of ending tensor index must be same as tensor dimension",
+  assert(((void)"Dimensions of ending tensor index must be same as tensor dimension",
 	  end.count == src.shape.count));
 
   // Assert if the indexes are in valid ranges
   for_slice(src.shape, i){
-    assert(("Starting index cannot be greater or equal to size of tensor",
+    assert(((void)"Starting index cannot be greater or equal to size of tensor",
 	    start.data[i] < src.shape.data[i]));
-    assert(("Starting index cannot be greater than size of tensor",
+    assert(((void)"Starting index cannot be greater than size of tensor",
 	    end.data[i] <= src.shape.data[i]));
   }
 
@@ -263,7 +263,7 @@ Tensor tensor_elemwise_manyop_inp(Tensor_Iter* out_iter, Tensor_Slice ts, f32_bi
 	  ts.count >= 2));
   // Then assert that each tensor is of same shape
   for_range(size_t, i, 1, ts.count){
-    assert(( "Differently shaped tensors cannot be used in elementwise operation", equal_tensor_inx(slice_inx(ts, 0).shape, slice_inx(ts, i).shape)));
+    assert(((void)"Differently shaped tensors cannot be used in elementwise operation", equal_tensor_inx(slice_inx(ts, 0).shape, slice_inx(ts, i).shape)));
   }
 
   // Assert that the output tensor is also of required shape
