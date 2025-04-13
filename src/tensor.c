@@ -292,34 +292,22 @@ Tensor tensor_elemwise_op_new(Alloc_Interface allocr, Tensor t1, f32_binop* op, 
   return tensor_elemwise_manyop(allocr, MAKE_ARRAY_SLICE(Tensor, t1, t2), op);
 }
 
-static f32 f32_add_op(f32 a, f32 b){
+f32 f32_add_op(f32 a, f32 b){
   return a + b;
 }
 
-static f32 f32_prod_op(f32 a, f32 b){
+f32 f32_prod_op(f32 a, f32 b){
   return a * b;
 }
 
-static f32 f32_max_op(f32 a, f32 b){
+f32 f32_max_op(f32 a, f32 b){
   return ((a>b)?a:b);
 };
 
-static f32 f32_min_op(f32 a, f32 b){
+f32 f32_min_op(f32 a, f32 b){
   return ((a<b)?a:b);
 }
 
-Tensor tensor_add(Alloc_Interface allocr, Tensor t1, Tensor t2){
-  return tensor_elemwise_op(allocr, t1, f32_add_op, t2);
-}
-Tensor tensor_prod(Alloc_Interface allocr, Tensor t1, Tensor t2){
-  return tensor_elemwise_op(allocr, t1, f32_prod_op, t2);
-}
-Tensor tensor_max(Alloc_Interface allocr, Tensor t1, Tensor t2){
-  return tensor_elemwise_op(allocr, t1, f32_max_op, t2);
-}
-Tensor tensor_min(Alloc_Interface allocr, Tensor t1, Tensor t2){
-  return tensor_elemwise_op(allocr, t1, f32_min_op, t2);
-}
 Tensor tensor_vector_op_new(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv){
   Tensor ans = tensor_alloc_(allocr, tv.shape);
 
@@ -331,19 +319,6 @@ Tensor tensor_vector_op_new(Alloc_Interface allocr, f32 sv, f32_binop* op, Tenso
   }
   tensor_iter_deinit(allocr, &iter);
   return ans;
-}
-
-Tensor tensor_vadd(Alloc_Interface allocr, f32 f, Tensor tv){
-  return tensor_vector_op(allocr, f, f32_add_op, t1);
-}
-Tensor tensor_vprod(Alloc_Interface allocr, f32 f, Tensor tv){
-  return tensor_vector_op(allocr, f, f32_prod_op, t1);
-}
-Tensor tensor_vmax(Alloc_Interface allocr, f32 f, Tensor tv){
-  return tensor_vector_op(allocr, f, f32_max_op, t1);
-}
-Tensor tensor_vmin(Alloc_Interface allocr, f32 f, Tensor tv){
-  return tensor_vector_op(allocr, f, f32_min_op, t1);
 }
 
 Tensor_Iter tensor_iter_init(Alloc_Interface allocr, Tensor t){

@@ -38,6 +38,7 @@ Tensor_Iter tensor_iter_init(Alloc_Interface allocr, Tensor t);
 void tensor_iter_deinit(Alloc_Interface allocr, Tensor_Iter* iter);
 bool tensor_iter_next(Tensor_Iter* iter);
 
+
 void tensor_print(Alloc_Interface allocr, Tensor t);
 f32* tensor_get_ptr_(Tensor t, Tensor_Inx inx);
 #define tensor_get(t, ...)					\
@@ -76,7 +77,6 @@ void tensor_permute_in_place(Tensor t, uptr inx1, uptr inx2);
 void tensor_free(Alloc_Interface allocr, Tensor* t);
 uptr tensor_size(Tensor t);
 
-typedef f32 f32_binop(f32 a, f32 b);
 
 DEF_SLICE(Tensor);
 
@@ -100,11 +100,13 @@ DEF_SLICE(Tensor);
 	    Tensor_Iter*: CONCAT(name, _inp))		\
    ((allocr_or_outiter), __VA_ARGS__))
 
+typedef f32 f32_binop(f32 a, f32 b);
+// Some common fp binop functions to be used as fp operation pointers
+f32 f32_add_op(f32 a, f32 b);
+f32 f32_prod_op(f32 a, f32 b);
+f32 f32_max_op(f32 a, f32 b);
+f32 f32_min_op(f32 a, f32 b);
 
-Tensor tensor_add(Alloc_Interface allocr, Tensor t1, Tensor t2);
-Tensor tensor_prod(Alloc_Interface allocr, Tensor t1, Tensor t2);
-Tensor tensor_max(Alloc_Interface allocr, Tensor t1, Tensor t2);
-Tensor tensor_min(Alloc_Interface allocr, Tensor t1, Tensor t2);
 
 // Need to send in than more one tensors here
 //   This is otherwise similar to chaining operations from 'elemwise_op'
@@ -116,6 +118,11 @@ TENSOR_OP_DECLFN(tensor_elemwise_op, Tensor t1, f32_binop* op, Tensor t2);
 #define tensor_elemwise_op(allocr_or_outiter, t1, opfn, t2)		\
   TENSOR_OP_CHOOSE(tensor_elemwise_op, allocr_or_outiter, t1, opfn, t2)
 
+// Following are some convienience functions that just use 'tensor_elemwise_op' with predefined operation functions
+#define tensor_add(allocr_or_outiter, t1, t2) tensor_elemwise_op(allocr_or_outiter, t1, f32_add_op, t2);
+#define tensor_prod(allocr_or_outiter, t1, t2) tensor_elemwise_op(allocr_or_outiter, t1, f32_prod_op, t2);
+#define tensor_max(allocr_or_outiter, t1, t2) tensor_elemwise_op(allocr_or_outiter, t1, f32_max_op, t2);
+#define tensor_min(allocr_or_outiter, t1, t2) tensor_elemwise_op(allocr_or_outiter, t1, f32_min_op, t2);
 
 // Vectorization like operation, left is scalar, right is elements of the tensor
 //Tensor tensor_vector_op(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv);
@@ -123,10 +130,11 @@ TENSOR_OP_DECLFN(tensor_vector_op, f32 sv, f32_binop* op, Tensor tv);
 #define tensor_vector_op(allocr_or_outiter, scalarv, opfn, tensorv)	\
   TENSOR_OP_CHOOSE(tensor_vector_op, allocr_or_outiter, scalarv, opfn, tensorv)
 
-Tensor tensor_vadd(Alloc_Interface allocr, f32 f, Tensor tv);
-Tensor tensor_vprod(Alloc_Interface allocr, f32 f, Tensor tv);
-Tensor tensor_vmax(Alloc_Interface allocr, f32 f, Tensor tv);
-Tensor tensor_vmin(Alloc_Interface allocr, f32 f, Tensor tv);
+// Following are some convienience functions that just use 'tensor_vector_op' with predefined operation functions
+#define tensor_vadd(allocr_or_outiter, fval, tval) tensor_vector_op(allocr_or_outiter, fval, f32_add_op, tval);
+#define tensor_vprod(allocr_or_outiter, fval, tval) tensor_vector_op(allocr_or_outiter, fval, f32_prod_op, tval);
+#define tensor_vmax(allocr_or_outiter, fval, tval) tensor_vector_op(allocr_or_outiter, fval, f32_max_op, tval);
+#define tensor_vmin(allocr_or_outiter, fval, tval) tensor_vector_op(allocr_or_outiter, fval, f32_min_op, tval);
 
 // Vectorization like operation, but for small tensor and big tensor
 
@@ -137,7 +145,6 @@ Tensor tensor_reduce_op(Alloc_Interface allocr, Tensor tv, uptr dim, f32_binop* 
 Tensor tensor_dupe(Alloc_Interface allocr, Tensor t);
 // Creates a new tensor by always making a new contiguous tensor
 Tensor tensor_contiguous(Alloc_Interface allocr, Tensor t);
-
 
 // Some macros to make life easier
 // Only to be used from the macro because standard C cannot return values from scopes
