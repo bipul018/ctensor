@@ -63,7 +63,8 @@ Tensor tensor_elemwise_op(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tens
 
 Tensor tensor_add(Alloc_Interface allocr, Tensor t1, Tensor t2);
 Tensor tensor_prod(Alloc_Interface allocr, Tensor t1, Tensor t2);
-
+Tensor tensor_max(Alloc_Interface allocr, Tensor t1, Tensor t2);
+Tensor tensor_min(Alloc_Interface allocr, Tensor t1, Tensor t2);
 
 DEF_SLICE(Tensor);
 // Need to send in than more one tensors here
@@ -73,9 +74,15 @@ Tensor tensor_elemwise_manyop(Alloc_Interface allocr, Tensor_Slice ts, f32_binop
 // Vectorization like operation, left is scalar, right is elements of the tensor
 Tensor tensor_vector_op(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv);
 
-Tensor tensor_vadd(Alloc_Interface allocr, f32 f, Tensor t1);
-Tensor tensor_vprod(Alloc_Interface allocr, f32 f, Tensor t1);
+Tensor tensor_vadd(Alloc_Interface allocr, f32 f, Tensor tv);
+Tensor tensor_vprod(Alloc_Interface allocr, f32 f, Tensor tv);
+Tensor tensor_vmax(Alloc_Interface allocr, f32 f, Tensor tv);
+Tensor tensor_vmin(Alloc_Interface allocr, f32 f, Tensor tv);
 
+// Vectorization like operation, but for small tensor and big tensor
+
+// Reduce operation that uses elemwise many op inside
+Tensor tensor_reduce_op(Alloc_Interface allocr, Tensor tv, uptr dim, f32_binop* op);
 
 // Creates a new tensor without trying to make it contiguous if original was not
 Tensor tensor_dupe(Alloc_Interface allocr, Tensor t);

@@ -307,11 +307,54 @@ static f32 f32_prod_op(f32 a, f32 b){
   return a * b;
 }
 
+static f32 f32_max_op(f32 a, f32 b){
+  return ((a>b)?a:b);
+};
+
+static f32 f32_min_op(f32 a, f32 b){
+  return ((a<b)?a:b);
+}
+
 Tensor tensor_add(Alloc_Interface allocr, Tensor t1, Tensor t2){
   return tensor_elemwise_op(allocr, t1, f32_add_op, t2);
 }
 Tensor tensor_prod(Alloc_Interface allocr, Tensor t1, Tensor t2){
   return tensor_elemwise_op(allocr, t1, f32_prod_op, t2);
+}
+Tensor tensor_max(Alloc_Interface allocr, Tensor t1, Tensor t2){
+  return tensor_elemwise_op(allocr, t1, f32_max_op, t2);
+}
+Tensor tensor_min(Alloc_Interface allocr, Tensor t1, Tensor t2){
+  return tensor_elemwise_op(allocr, t1, f32_min_op, t2);
+}
+
+Tensor tensor_vector_op(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv){
+  Tensor ans = tensor_alloc(allocr, tv.shape);
+  (void)memset(ans.offset.data, 0, uptr_slice_bytes(ans.offset));
+  memcpy(ans.shape.data, slice_inx(ts, 0).shape.data, uptr_slice_bytes(tv.shape));
+  // Make stride according to standard format
+  tensor_force_fix_stride(ans.shape, ans.stride);
+  Tensor_Iter iter = tensor_iter_init(allocr, ans);
+  
+  while(tensor_iter_next(&iter)){
+    *tensor_get_ptr_(ans, iter.inx) = 
+      op(sv, *tensor_get_ptr_(tv, iter.inx));
+  }
+  tensor_iter_deinit(allocr, &iter);
+  return ans;
+}
+
+Tensor tensor_vadd(Alloc_Interface allocr, f32 f, Tensor tv){
+  return tensor_vector_op(allocr, f, f32_add_op, t1);
+}
+Tensor tensor_vprod(Alloc_Interface allocr, f32 f, Tensor tv){
+  return tensor_vector_op(allocr, f, f32_prod_op, t1);
+}
+Tensor tensor_vmax(Alloc_Interface allocr, f32 f, Tensor tv){
+  return tensor_vector_op(allocr, f, f32_max_op, t1);
+}
+Tensor tensor_vmin(Alloc_Interface allocr, f32 f, Tensor tv){
+  return tensor_vector_op(allocr, f, f32_min_op, t1);
 }
 
 Tensor_Iter tensor_iter_init(Alloc_Interface allocr, Tensor t){
