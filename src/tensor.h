@@ -26,6 +26,18 @@ struct Tensor {
 };
 
 
+// An iterator for using tensors
+typedef struct Tensor_Iter Tensor_Iter;
+struct Tensor_Iter {
+  Tensor t;
+  Tensor_Inx inx;
+  bool first_time;
+};
+
+Tensor_Iter tensor_iter_init(Alloc_Interface allocr, Tensor t);
+void tensor_iter_deinit(Alloc_Interface allocr, Tensor_Iter* iter);
+bool tensor_iter_next(Tensor_Iter* iter);
+
 void tensor_print(Alloc_Interface allocr, Tensor t);
 f32* tensor_get_ptr_(Tensor t, Tensor_Inx inx);
 #define tensor_get(t, ...)					\
@@ -59,20 +71,50 @@ uptr tensor_size(Tensor t);
 
 typedef f32 f32_binop(f32 a, f32 b);
 
-Tensor tensor_elemwise_op(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tensor t2);
+DEF_SLICE(Tensor);
+
+// Declares two functions, with a special first argument, and rest arguments
+//    according to the passed values in __VA_ARGS__
+// First function is suffixed with '_new', and takes in Alloc_Interface as first arg
+// Second function is suffixed with '_inp', and takes in Tensor_Iter* as first arg
+// First function is supposed to do the operation on a new tensor and return it
+// Second function is supposed to do the operation inplace and return it
+// This is done because the functions are not supposed to be used directly,
+//    but rather through another wrapper macro using _Generic declared using the
+//    next macro below
+#define TENSOR_OP_DECLFN(name, ...)					\
+  Tensor CONCAT(name, _new)(Alloc_Interface allocr, __VA_ARGS__);	\
+  Tensor CONCAT(name, _inp)(Tensor_Iter* out_iter, __VA_ARGS__);
+
+// A helper macro to choose operation that both create and do operation in place
+#define TENSOR_OP_CHOOSE(name, allocr_or_outiter, ...)	\
+  (_Generic((allocr_or_outiter),			\
+	    Alloc_Interface: CONCAT(name, _new),	\
+	    Tensor_Iter*: CONCAT(name, _inp))		\
+   ((allocr_or_outiter), __VA_ARGS__))
+
 
 Tensor tensor_add(Alloc_Interface allocr, Tensor t1, Tensor t2);
 Tensor tensor_prod(Alloc_Interface allocr, Tensor t1, Tensor t2);
 Tensor tensor_max(Alloc_Interface allocr, Tensor t1, Tensor t2);
 Tensor tensor_min(Alloc_Interface allocr, Tensor t1, Tensor t2);
 
-DEF_SLICE(Tensor);
 // Need to send in than more one tensors here
 //   This is otherwise similar to chaining operations from 'elemwise_op'
-Tensor tensor_elemwise_manyop(Alloc_Interface allocr, Tensor_Slice ts, f32_binop* op);
+TENSOR_OP_DECLFN(tensor_elemwise_manyop, Tensor_Slice ts, f32_binop* op);
+#define tensor_elemwise_manyop(allocr_or_outiter, in_slice, op_fn)	\
+  TENSOR_OP_CHOOSE(tensor_elemwise_manyop, allocr_or_outiter, in_slice, op_fn)
+
+TENSOR_OP_DECLFN(tensor_elemwise_op, Tensor t1, f32_binop* op, Tensor t2);
+#define tensor_elemwise_op(allocr_or_outiter, t1, opfn, t2)		\
+  TENSOR_OP_CHOOSE(tensor_elemwise_op, allocr_or_outiter, t1, opfn, t2)
+
 
 // Vectorization like operation, left is scalar, right is elements of the tensor
-Tensor tensor_vector_op(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv);
+//Tensor tensor_vector_op(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv);
+TENSOR_OP_DECLFN(tensor_vector_op, f32 sv, f32_binop* op, Tensor tv);
+#define tensor_vector_op(allocr_or_outiter, scalarv, opfn, tensorv)	\
+  TENSOR_OP_CHOOSE(tensor_vector_op, allocr_or_outiter, scalarv, opfn, tensorv)
 
 Tensor tensor_vadd(Alloc_Interface allocr, f32 f, Tensor tv);
 Tensor tensor_vprod(Alloc_Interface allocr, f32 f, Tensor tv);
@@ -89,17 +131,6 @@ Tensor tensor_dupe(Alloc_Interface allocr, Tensor t);
 // Creates a new tensor by always making a new contiguous tensor
 Tensor tensor_contiguous(Alloc_Interface allocr, Tensor t);
 
-// An iterator for using tensors
-typedef struct Tensor_Iter Tensor_Iter;
-struct Tensor_Iter {
-  Tensor t;
-  Tensor_Inx inx;
-  bool first_time;
-};
-
-Tensor_Iter tensor_iter_init(Alloc_Interface allocr, Tensor t);
-void tensor_iter_deinit(Alloc_Interface allocr, Tensor_Iter* iter);
-bool tensor_iter_next(Tensor_Iter* iter);
 
 // Some macros to make life easier
 // Only to be used from the macro because standard C cannot return values from scopes

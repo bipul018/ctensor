@@ -265,7 +265,7 @@ Tensor tensor_slice_(Alloc_Interface allocr, Tensor src,
   return dst;
 }
 
-Tensor tensor_elemwise_manyop(Alloc_Interface allocr, Tensor_Slice ts, f32_binop* op){
+Tensor tensor_elemwise_manyop_inp(Tensor_Iter* out_iter, Tensor_Slice ts, f32_binop* op){
   // Maybe first assert that there are more than 1`tensors
   assert(((void)"There has to be at least 2 tensors for this operation to have meaning",
 	  ts.count >= 2));
@@ -273,29 +273,30 @@ Tensor tensor_elemwise_manyop(Alloc_Interface allocr, Tensor_Slice ts, f32_binop
   for_range(size_t, i, 1, ts.count){
     assert(( "Differently shaped tensors cannot be used in elementwise operation", equal_tensor_inx(slice_inx(ts, 0).shape, slice_inx(ts, i).shape)));
   }
-  
-  Tensor ans = tensor_alloc(allocr, ts.data[0].shape);
-  (void)memset(ans.offset.data, 0, uptr_slice_bytes(ans.offset));
-  memcpy(ans.shape.data, slice_inx(ts, 0).shape.data, uptr_slice_bytes(slice_inx(ts, 0).shape));
-  // Make stride according to standard format
-  tensor_force_fix_stride(ans.shape, ans.stride);
 
-  Tensor_Iter iter = tensor_iter_init(allocr, ans);
-
-  while(tensor_iter_next(&iter)){
-    *tensor_get_ptr_(ans, iter.inx) = *tensor_get_ptr_(ts.data[0], iter.inx);
+  // Assert that the output tensor is also of required shape
+  assert(((void)"The output tensor should also be of the size of input tensors",
+	  equal_tensor_inx(slice_inx(ts,0).shape, out_iter->t.shape)));
+  while(tensor_iter_next(out_iter)){
+    *tensor_get_ptr_(out_iter->t, out_iter->inx) = *tensor_get_ptr_(ts.data[0], out_iter->inx);
     for_range(size_t, i, 1, ts.count){
-      *tensor_get_ptr_(ans, iter.inx) =
-	op(*tensor_get_ptr_(ans, iter.inx),
-	   *tensor_get_ptr_(slice_inx(ts, i), iter.inx));
+      *tensor_get_ptr_(out_iter->t, out_iter->inx) =
+	op(*tensor_get_ptr_(out_iter->t, out_iter->inx),
+	   *tensor_get_ptr_(slice_inx(ts, i), out_iter->inx));
     }
   }
-  tensor_iter_deinit(allocr, &iter);
-  return ans;
-
+  return out_iter->t;
 }
 
-Tensor tensor_elemwise_op(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tensor t2){
+Tensor tensor_elemwise_manyop_new(Alloc_Interface allocr, Tensor_Slice ts, f32_binop* op){
+  Tensor ans = tensor_alloc_(allocr, slice_inx(ts, 0).shape);
+  Tensor_Iter iter = tensor_iter_init(allocr, ans);
+  (void)tensor_elemwise_manyop_inp(&iter, ts, op);
+  tensor_iter_deinit(allocr, &iter);
+  return ans;
+}
+
+Tensor tensor_elemwise_op_new(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tensor t2){
   return tensor_elemwise_manyop(allocr, MAKE_ARRAY_SLICE(Tensor, t1, t2), op);
 }
 
