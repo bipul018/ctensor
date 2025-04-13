@@ -7,6 +7,7 @@ static float subtract_two_floats(float a, float b){
 }
 
 int arith_run(int argc, const char* argv[]){
+  (void)argc, (void)argv;
   const Alloc_Interface allocr = gen_std_allocator();
 
 #define DIM 3,4

@@ -35,7 +35,7 @@ static bool compare_files(FILE *file1, FILE *file2) {
   fseek(file1, 0, SEEK_SET);
   fseek(file2, 0, SEEK_SET);
   char ch1, ch2;
-  int error = 0, pos = 0, line = 1;
+  int pos = 0, line = 1;
 
   while(true){
     ch2 = fgetc(file2);
@@ -47,7 +47,6 @@ static bool compare_files(FILE *file1, FILE *file2) {
       pos = 0;
     }
     if (ch1 != ch2) {
-      error++;
       printf("Line Number: %d, Error Position: %d\n", line, pos);
       // Also print some characters:
       const int view = 30;

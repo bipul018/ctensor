@@ -3,7 +3,7 @@
 #include "tensor.h"
 
 int base_run(int argc, const char* argv[]){
-
+  (void)argc, (void)argv;
   const Alloc_Interface allocr = gen_std_allocator();
 
   Tensor t = tensor_create(allocr, 1.f, 2,3,4);

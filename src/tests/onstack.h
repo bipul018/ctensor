@@ -2,6 +2,7 @@
 #include "tensor.h"
 
 int stack_run(int argc, const char* argv[]){
+  (void)argc, (void)argv;
   const Alloc_Interface allocr = gen_std_allocator();
 
   {

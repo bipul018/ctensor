@@ -5,6 +5,7 @@
 #define BOOLSTR(boolean) ((boolean)? "Yes" : "No")
 
 int viewops_run(int argc, const char* argv[]){
+  (void)argc, (void)argv;
   const Alloc_Interface allocr = gen_std_allocator();
 
   // Create a single tensor with original storage
