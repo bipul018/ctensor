@@ -43,11 +43,18 @@ f32* tensor_get_ptr_(Tensor t, Tensor_Inx inx);
 #define tensor_get(t, ...)					\
   (*tensor_get_ptr_((t), MAKE_ARRAY_SLICE(uptr, __VA_ARGS__)))
 
+// Creates a new tensor, storage uninitialized
+Tensor tensor_alloc_(Alloc_Interface allocr, Tensor_Inx shape);
+#define tensor_alloc(allocr, ...)				\
+  tensor_alloc_((allocr), MAKE_ARRAY_SLICE(uptr, __VA_ARGS__))
+
+// Creates a new tensor, storage initialized with given value
 Tensor tensor_create_(Alloc_Interface allocr, f32 fill_elem, Tensor_Inx shape);
 #define tensor_create(allocr, fill_elem, ...)				\
   tensor_create_((allocr), (fill_elem), MAKE_ARRAY_SLICE(uptr, __VA_ARGS__))
 
 // TODO:: Add various types of rngs and dists later
+// Creates a new tensor, storage initialized with uniform random value (using rand())
 Tensor tensor_random_(Alloc_Interface allocr, f32 min_val, f32 max_val, Tensor_Inx shape);
 #define tensor_random(allocr, min_val, max_val, ...)				\
   tensor_random_((allocr), (min_val), (max_val), MAKE_ARRAY_SLICE(uptr, __VA_ARGS__))

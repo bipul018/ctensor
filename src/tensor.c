@@ -31,7 +31,7 @@ static void tensor_force_fix_stride(Tensor_Inx shape, Tensor_Inx stride){
 }
 
 // Not to be used directly, just a helper fxn
-static Tensor tensor_alloc(Alloc_Interface allocr, Tensor_Inx shape){
+Tensor tensor_alloc_(Alloc_Interface allocr, Tensor_Inx shape){
   // Find the final size
   uptr size = 1;
   for_slice(shape, s){
@@ -50,6 +50,12 @@ static Tensor tensor_alloc(Alloc_Interface allocr, Tensor_Inx shape){
   MEMCHK(t.shape.data);
   MEMCHK(t.stride.data);
   MEMCHK(t.offset.data);
+
+  // Form the shapes and strides
+  memcpy(t.shape.data, shape.data, uptr_slice_bytes(shape));
+  (void)memset(t.offset.data, 0, uptr_slice_bytes(t.offset));
+  tensor_force_fix_stride(t.shape, t.stride);
+
   return t;
 }
 
@@ -61,17 +67,11 @@ Tensor tensor_assume_contiguous_fix_stride(Tensor in){
 
 
 Tensor tensor_create_(Alloc_Interface allocr, f32 fill_elem, Tensor_Inx shape){
-  Tensor t = tensor_alloc(allocr, shape);
+  Tensor t = tensor_alloc_(allocr, shape);
   // fill the storage
   for_slice(t.storage, i){
     slice_inx(t.storage, i) = fill_elem;
   }
-
-  // Form the shapes and strides
-  memcpy(t.shape.data, shape.data, uptr_slice_bytes(shape));
-  (void)memset(t.offset.data, 0, uptr_slice_bytes(t.offset));
-
-  tensor_force_fix_stride(t.shape, t.stride);
   return t;
 }
 
@@ -122,11 +122,7 @@ Tensor tensor_dupe(Alloc_Interface allocr, Tensor t){
 
 Tensor tensor_contiguous(Alloc_Interface allocr, Tensor t){
   // Create equivalent sized tensor
-  Tensor newt = tensor_alloc(allocr, t.shape);
-  (void)memset(newt.offset.data, 0, uptr_slice_bytes(newt.offset));
-  memcpy(newt.shape.data, t.shape.data, uptr_slice_bytes(t.shape));
-  // Make stride according to standard format
-  tensor_force_fix_stride(newt.shape, newt.stride);
+  Tensor newt = tensor_alloc_(allocr, t.shape);
 
   Tensor_Iter iter = tensor_iter_init(allocr, t);
   while(tensor_iter_next(&iter)){
@@ -138,11 +134,7 @@ Tensor tensor_contiguous(Alloc_Interface allocr, Tensor t){
 }
 
 Tensor tensor_random_(Alloc_Interface allocr, f32 min_val, f32 max_val, Tensor_Inx shape){
-  Tensor rant = tensor_alloc(allocr, shape);
-  memcpy(rant.shape.data, shape.data, uptr_slice_bytes(shape));
-  (void)memset(rant.offset.data, 0, uptr_slice_bytes(rant.offset));
-  // Make stride according to standard format
-  tensor_force_fix_stride(rant.shape, rant.stride);
+  Tensor rant = tensor_alloc_(allocr, shape);
 
   for_slice(rant.storage, i){
     rant.storage.data[i] = ((rand() * 1.0) / (RAND_MAX-1)) * (max_val - min_val) + min_val;
@@ -328,13 +320,9 @@ Tensor tensor_max(Alloc_Interface allocr, Tensor t1, Tensor t2){
 Tensor tensor_min(Alloc_Interface allocr, Tensor t1, Tensor t2){
   return tensor_elemwise_op(allocr, t1, f32_min_op, t2);
 }
+Tensor tensor_vector_op_new(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv){
+  Tensor ans = tensor_alloc_(allocr, tv.shape);
 
-Tensor tensor_vector_op(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv){
-  Tensor ans = tensor_alloc(allocr, tv.shape);
-  (void)memset(ans.offset.data, 0, uptr_slice_bytes(ans.offset));
-  memcpy(ans.shape.data, slice_inx(ts, 0).shape.data, uptr_slice_bytes(tv.shape));
-  // Make stride according to standard format
-  tensor_force_fix_stride(ans.shape, ans.stride);
   Tensor_Iter iter = tensor_iter_init(allocr, ans);
   
   while(tensor_iter_next(&iter)){
