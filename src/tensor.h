@@ -35,6 +35,7 @@ struct Tensor_Iter {
 };
 
 Tensor_Iter tensor_iter_init(Alloc_Interface allocr, Tensor t);
+void tensor_iter_reset(Tensor_Iter* iter);
 void tensor_iter_deinit(Alloc_Interface allocr, Tensor_Iter* iter);
 bool tensor_iter_next(Tensor_Iter* iter);
 
@@ -102,6 +103,7 @@ DEF_SLICE(Tensor);
 
 typedef f32 f32_binop(f32 a, f32 b);
 // Some common fp binop functions to be used as fp operation pointers
+// TODO:: Add test cases for all usages of these functions later
 f32 f32_add_op(f32 a, f32 b);
 f32 f32_prod_op(f32 a, f32 b);
 f32 f32_max_op(f32 a, f32 b);

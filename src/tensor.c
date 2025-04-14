@@ -291,6 +291,9 @@ Tensor tensor_map_op_new(Alloc_Interface allocr, Tensor_Slice ts, f32_binop* op)
 Tensor tensor_bin_op_new(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tensor t2){
   return tensor_map_op(allocr, MAKE_ARRAY_SLICE(Tensor, t1, t2), op);
 }
+Tensor tensor_bin_op_inp(Tensor_Iter* out_iter, Tensor t1, f32_binop* op, Tensor t2){
+  return tensor_map_op(out_iter, MAKE_ARRAY_SLICE(Tensor, t1, t2), op);
+}
 
 f32 f32_add_op(f32 a, f32 b){
   return a + b;
@@ -307,16 +310,17 @@ f32 f32_max_op(f32 a, f32 b){
 f32 f32_min_op(f32 a, f32 b){
   return ((a<b)?a:b);
 }
-
+Tensor tensor_vector_op_inp(Tensor_Iter* out_iter, f32 sv, f32_binop* op, Tensor tv){
+  while(tensor_iter_next(out_iter)){
+    *tensor_get_ptr_(out_iter->t, out_iter->inx) = 
+      op(sv, *tensor_get_ptr_(tv, out_iter->inx));
+  }
+  return out_iter->t;
+}
 Tensor tensor_vector_op_new(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv){
   Tensor ans = tensor_alloc_(allocr, tv.shape);
-
   Tensor_Iter iter = tensor_iter_init(allocr, ans);
-  
-  while(tensor_iter_next(&iter)){
-    *tensor_get_ptr_(ans, iter.inx) = 
-      op(sv, *tensor_get_ptr_(tv, iter.inx));
-  }
+  (void)tensor_vector_op(&iter, sv, op, tv);
   tensor_iter_deinit(allocr, &iter);
   return ans;
 }
