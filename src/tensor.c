@@ -353,7 +353,7 @@ Tensor tensor_reduce_op_inp(Tensor_Iter* out_iter, Tensor tv, uptr dim, f32_bino
 	      slice_inx(tv.shape, i) == slice_inx(out_iter->t.shape, i)));
     } else if(i >= dim){
       assert(((void)"The dimension of output must match input except for the chosen dimension to work on",
-	      slice_inx(tv.shape, i) == slice_inx(out_iter->t.shape, i+1)));
+	      slice_inx(tv.shape, i+1) == slice_inx(out_iter->t.shape, i)));
     }
   }
 

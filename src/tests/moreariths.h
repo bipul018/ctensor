@@ -41,7 +41,40 @@ static int arith2_run(int argc, const char* argv[]){
   printf("\nAfter doing max binop within the tensor using slices: \n");
   tensor_print(allocr, t2);
   
+  // Now test case for reduce operation (allocation type)
+
+  Tensor t5 = tensor_range(allocr, -1.f, 0.1f, 3,4,2);
+  tensor_permute_in_place(t5, 0, 2);
+  Tensor t6 = tensor_rprod(allocr, t5, 0);
   
+  printf("\nRange based tensor = \n");
+  tensor_print(allocr, t5);
+  printf("\nReduced tensor along dim2 = \n");
+  tensor_print(allocr, t6);
+
+  // Reduce operation (inplace)
+  Tensor t7 = tensor_slice(allocr, t6, (0, 0), (3, 3));
+  tensor_permute_in_place(t7, 0, 1);
+
+  Tensor t8 = tensor_alloc(allocr, 3);
+  Tensor_Iter t8_iter = tensor_iter_init(allocr, t8);
+
+  printf("\nSlice to be reduced = \n");
+  tensor_print(allocr, t7);
+  printf("\nSlice to be written with reduced value = \n");
+  tensor_print(allocr, t8);
+
+  (void)tensor_rmax(&t8_iter, t7, 0);
+
+  printf("\nSlice after being writen with reduced value = \n");
+  tensor_print(allocr, t8);
+
+  tensor_iter_deinit(allocr, &t8_iter);
+  tensor_free(allocr, &t8);
+  tensor_free(allocr, &t7);
+
+  tensor_free(allocr, &t6);
+  tensor_free(allocr, &t5);
 
   tensor_iter_deinit(allocr, &t2s1_iter);
   tensor_free(allocr, &t2_s3);
