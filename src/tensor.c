@@ -150,6 +150,15 @@ Tensor tensor_random_(Alloc_Interface allocr, f32 min_val, f32 max_val, Tensor_I
   
 }
 
+Tensor tensor_range_(Alloc_Interface allocr, f32 start_val, f32 step_size, Tensor_Inx shape){
+  Tensor rent = tensor_alloc_(allocr, shape);
+
+  for_slice(rent.storage, i){
+    rent.storage.data[i] = start_val;
+    start_val += step_size;
+  }
+  return rent;
+}
 
 void tensor_print(Alloc_Interface allocr, Tensor t){
   Tensor_Iter iter = tensor_iter_init(allocr, t);
@@ -321,13 +330,87 @@ Tensor tensor_vector_op_new(Alloc_Interface allocr, f32 sv, f32_binop* op, Tenso
   return ans;
 }
 
+Tensor tensor_reduce_op_inp(Tensor_Iter* out_iter, Tensor tv, uptr dim, f32_binop* op){
+  // For reduce operations to work the number of dimensions should be > 0
+  assert(((void)"Cannot do reduction on 0 dimensional tensors", tv.shape.count > 0));
+
+  // Assert that the dim is in range
+  assert(((void)"The dim to work on should exist in input tensor",
+	  dim < tv.shape.count));
+
+  // Assert that out_iter's tensor's dim is 1 less
+  assert(((void)"The output tensor's dimension count should be 1 less than input",
+	  out_iter->t.shape.count == (tv.shape.count -1)));
+
+  // Assert that the input has at least 1 elem in the dim index
+  assert(((void)"The input tensor to reduce must have non-zero dim in the chosen index",
+	  slice_inx(tv.shape, dim) > 0));
+
+  // Assert that the out_iter's tensor's shape matches after removing the dim
+  for_slice(out_iter->t.shape, i){
+    if(i < dim){
+      assert(((void)"The dimension of output must match input except for the chosen dimension to work on",
+	      slice_inx(tv.shape, i) == slice_inx(out_iter->t.shape, i)));
+    } else if(i >= dim){
+      assert(((void)"The dimension of output must match input except for the chosen dimension to work on",
+	      slice_inx(tv.shape, i) == slice_inx(out_iter->t.shape, i+1)));
+    }
+  }
+
+  while(tensor_iter_next(out_iter)){
+    // Extract the single dimension ni 'tv' corresponding to out_iter
+    // Do the reduce operation on that
+    uptr offset = 0;
+    for_slice(out_iter->inx, i){
+      if(i < dim) offset += (tv.offset.data[i] + out_iter->inx.data[i]) * tv.stride.data[i];
+      else if(i >= dim) offset += (tv.offset.data[i+1] + out_iter->inx.data[i]) * tv.stride.data[i+1];
+    }
+
+    Tensor one_dim = {
+      .storage = init_f32_slice(tv.storage.data + offset, tv.storage.count-offset),
+      .shape = MAKE_ARRAY_SLICE(uptr, slice_inx(tv.shape, dim)),
+      .stride = MAKE_ARRAY_SLICE(uptr, slice_inx(tv.stride, dim)),
+      .offset = MAKE_ARRAY_SLICE(uptr, 0),
+      .owner = false,
+    };
+
+    *tensor_get_ptr_(out_iter->t, out_iter->inx) = tensor_get(one_dim, 0);
+    for_range(uptr, i, 1, slice_inx(tv.shape, dim)){
+      *tensor_get_ptr_(out_iter->t, out_iter->inx) =
+      op(*tensor_get_ptr_(out_iter->t, out_iter->inx),
+	 tensor_get(one_dim, i));
+    }
+  }
+  
+  return out_iter->t;
+}
+
+Tensor tensor_reduce_op_new(Alloc_Interface allocr, Tensor tv, uptr dim, f32_binop* op){
+  assert(((void)"Input tensor must be at least 1 dimensional",
+	  tv.shape.count > 0));
+  Tensor_Inx out_shape = SLICE_ALLOC(allocr, uptr, tv.shape.count - 1);
+  if(out_shape.count > 0) MEMCHK(out_shape.data);
+
+  for_slice(out_shape, i){
+    if(i < dim) slice_inx(out_shape, i) = slice_inx(tv.shape, i);
+    else if(i >= dim) slice_inx(out_shape, i) = slice_inx(tv.shape, i+1);
+  }
+  Tensor ans = tensor_alloc_(allocr, out_shape);
+  SLICE_FREE(allocr, out_shape);
+
+  Tensor_Iter iter = tensor_iter_init(allocr, ans);
+  (void)tensor_reduce_op(&iter, tv, dim, op);
+  tensor_iter_deinit(allocr, &iter);
+  return ans;  
+}
+
 Tensor_Iter tensor_iter_init(Alloc_Interface allocr, Tensor t){
   Tensor_Iter iter = {
     .t = t,
     .inx = SLICE_ALLOC(allocr, uptr, t.shape.count),
     .first_time = true,
   };
-  MEMCHK(iter.inx.data);
+  if(t.shape.count > 0) MEMCHK(iter.inx.data);
   return iter;
 }
 

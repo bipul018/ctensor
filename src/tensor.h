@@ -62,6 +62,11 @@ Tensor tensor_random_(Alloc_Interface allocr, f32 min_val, f32 max_val, Tensor_I
 #define tensor_random(allocr, min_val, max_val, ...)				\
   tensor_random_((allocr), (min_val), (max_val), MAKE_ARRAY_SLICE(uptr, __VA_ARGS__))
 
+// Creates a new tensor by forming a range
+Tensor tensor_range_(Alloc_Interface allocr, f32 start_val, f32 step_size, Tensor_Inx shape);
+#define tensor_range(allocr, start_val, step_size, ...)				\
+  tensor_range_((allocr), (start_val), (step_size), MAKE_ARRAY_SLICE(uptr, __VA_ARGS__))
+
 // [start, end)
 Tensor tensor_slice_(Alloc_Interface allocr, Tensor src, Tensor_Inx start, Tensor_Inx end);
 // Send in indexes by wrapping in a bracket 
@@ -142,7 +147,14 @@ TENSOR_OP_DECLFN(tensor_vector_op, f32 sv, f32_binop* op, Tensor tv);
 // Vectorization like operation, but for small tensor and big tensor
 
 // Reduce operation that uses elemwise many op inside
-Tensor tensor_reduce_op(Alloc_Interface allocr, Tensor tv, uptr dim, f32_binop* op);
+TENSOR_OP_DECLFN(tensor_reduce_op, Tensor tensorv, uptr dim, f32_binop* opfn);
+#define tensor_reduce_op(allocr_or_outiter, tensorv, dim, opfn)	\
+  TENSOR_OP_CHOOSE(tensor_reduce_op, allocr_or_outiter, tensorv, dim, opfn)
+
+#define tensor_radd(allocr_or_outiter, tval, dim) tensor_reduce_op(allocr_or_outiter, tval, dim, f32_add_op);
+#define tensor_rprod(allocr_or_outiter, tval, dim) tensor_reduce_op(allocr_or_outiter, tval, dim, f32_prod_op);
+#define tensor_rmax(allocr_or_outiter, tval, dim) tensor_reduce_op(allocr_or_outiter, tval, dim, f32_max_op);
+#define tensor_rmin(allocr_or_outiter, tval, dim) tensor_reduce_op(allocr_or_outiter, tval, dim, f32_min_op);
 
 // Creates a new tensor without trying to make it contiguous if original was not
 Tensor tensor_dupe(Alloc_Interface allocr, Tensor t);
