@@ -38,6 +38,7 @@ Tensor tensor_alloc_(Alloc_Interface allocr, Tensor_Inx shape){
     size *= shape.data[s];
   }
 
+  // TODO:: If the shape.count is 0, decide if you want to always make it null explicitly
   // Allocate the tensor resources
   Tensor t = {
     .storage = SLICE_ALLOC(allocr, f32, size),
@@ -47,15 +48,17 @@ Tensor tensor_alloc_(Alloc_Interface allocr, Tensor_Inx shape){
     .owner = true,
   };
   MEMCHK(t.storage.data);
-  MEMCHK(t.shape.data);
-  MEMCHK(t.stride.data);
-  MEMCHK(t.offset.data);
-
-  // Form the shapes and strides
-  memcpy(t.shape.data, shape.data, uptr_slice_bytes(shape));
-  (void)memset(t.offset.data, 0, uptr_slice_bytes(t.offset));
-  tensor_force_fix_stride(t.shape, t.stride);
-
+  // Since if the shape is 0, the alloc function can return null or not
+  //  so check following only if the shape is nonzero length
+  if(shape.count > 0){
+    MEMCHK(t.shape.data);
+    MEMCHK(t.stride.data);
+    MEMCHK(t.offset.data);
+    // Form the shapes and strides
+    memcpy(t.shape.data, shape.data, uptr_slice_bytes(shape));
+    (void)memset(t.offset.data, 0, uptr_slice_bytes(t.offset));
+    tensor_force_fix_stride(t.shape, t.stride);
+  }
   return t;
 }
 
@@ -114,9 +117,13 @@ Tensor tensor_dupe(Alloc_Interface allocr, Tensor t){
     .owner = true,
   };
   MEMCHK(out.storage.data);
-  MEMCHK(out.shape.data);
-  MEMCHK(out.stride.data);
-  MEMCHK(out.offset.data);
+  // Since if the shape is 0, the alloc function can return null or not
+  //  so check following only if the shape is nonzero length
+  if(t.shape.count > 0){
+    MEMCHK(out.shape.data);
+    MEMCHK(out.stride.data);
+    MEMCHK(out.offset.data);
+  }
   return out;
 }
 
@@ -145,47 +152,32 @@ Tensor tensor_random_(Alloc_Interface allocr, f32 min_val, f32 max_val, Tensor_I
 
 
 void tensor_print(Alloc_Interface allocr, Tensor t){
-  Tensor_Inx inxs = SLICE_ALLOC(allocr, uptr, t.shape.count);
-  MEMCHK(inxs.data);
-
-  for_slice(inxs, i) slice_inx(inxs, i) = 0;
-
-  while(slice_inx(inxs, 0) < slice_inx(t.shape, 0)){
-    // Modulus the tensor size (a hack, TODO:: remove it)
-    for_slice(inxs, i) slice_inx(inxs, i) = slice_inx(inxs, i) % slice_inx(t.shape, i);
-
-    // For each inx in inxs which is 0, print a [
+  Tensor_Iter iter = tensor_iter_init(allocr, t);
+  while(tensor_iter_next(&iter)){
     size_t zeros = 0;
-    for_slice(inxs, i_) {
-      uptr i = inxs.count - i_ - 1;
-      if(inxs.data[i] == 0) zeros++;
+    for_slice(iter.inx, i_) {
+      uptr i = iter.inx.count - i_ - 1;
+      if(iter.inx.data[i] == 0) zeros++;
       else break;
     }
     if(zeros > 0){
-      for_range(size_t, i, 0, inxs.count - zeros) printf(" ");
+      for_range(size_t, i, 0, iter.inx.count - zeros) printf(" ");
       for_range(size_t, i, 0, zeros) printf("[");
-    }
+    }    
 
-    // Print index element
-    if(zeros == 0) printf(", ");
-    printf("%f", *tensor_get_ptr_(t, inxs));
-
-    // Increment the top index, if oversize, overflow it
-    // For each overflowed dimension, print ]\n
+    if(iter.inx.count > 0 && zeros == 0) printf(", ");
+    printf("%f", *tensor_get_ptr_(t, iter.inx));
+    
     bool some_overflowed = false;
-    for_slice(inxs, i_){
-      uptr i = inxs.count - i_ - 1;
-      slice_inx(inxs, i) += 1;
-      if(slice_inx(inxs, i) < slice_inx(t.shape, i)) break;
+    for_slice(iter.inx, i_){
+      uptr i = iter.inx.count - i_ - 1;
+      if(slice_inx(iter.inx, i) != (slice_inx(t.shape, i)-1)) break;
       printf("]");
       some_overflowed = true;
     }
-    if(some_overflowed) printf("\n");
+    if(some_overflowed) printf("\n");    
   }
-  
-
-  SLICE_FREE(allocr, inxs);
-  
+  tensor_iter_deinit(allocr, &iter);
 }
 
 void tensor_permute_in_place(Tensor t, uptr inx1, uptr inx2){
@@ -207,10 +199,13 @@ Tensor tensor_permute(Alloc_Interface allocr, Tensor oldt, uptr inx1, uptr inx2)
     .offset = make_copy_uptr_slice(allocr, oldt.offset),
     .owner = false,
   };
-
-  MEMCHK(newt.shape.data);
-  MEMCHK(newt.stride.data);
-  MEMCHK(newt.offset.data);
+  // Since if the shape is 0, the alloc function can return null or not
+  //  so check following only if the shape is nonzero length
+  if(oldt.shape.count > 0){
+    MEMCHK(newt.shape.data);
+    MEMCHK(newt.stride.data);
+    MEMCHK(newt.offset.data);
+  }
 
   tensor_permute_in_place(newt, inx1, inx2);
 
@@ -243,10 +238,11 @@ Tensor tensor_slice_(Alloc_Interface allocr, Tensor src,
     .owner = false,
   };
 
-  MEMCHK(dst.shape.data);
-  MEMCHK(dst.stride.data);
-  MEMCHK(dst.offset.data);
-
+  if(src.shape.count>0){
+    MEMCHK(dst.shape.data);
+    MEMCHK(dst.stride.data);
+    MEMCHK(dst.offset.data);
+  }
   // Slice-em
   // shape = end - start, offset += start
   for_slice(dst.shape, i){
@@ -343,7 +339,8 @@ bool tensor_iter_next(Tensor_Iter* iter){
   if(iter->first_time){
     for_slice(iter->inx, i) slice_inx(iter->inx, i) = 0;
     iter->first_time = false;
-    // TODO:: Handle the cases where the tensor is of 0 size
+    // TODO:: Handle the cases where the tensor is of 0 size (not 0 dim)
+    // 0 dim tensor should work fine
     return true;
   }
   else{
@@ -352,7 +349,7 @@ bool tensor_iter_next(Tensor_Iter* iter){
       slice_inx(iter->inx, i) += 1;
       if(slice_inx(iter->inx, i) < slice_inx(iter->t.shape, i)) break;
     }
-    if(slice_inx(iter->inx, 0) >= slice_inx(iter->t.shape, 0)) return false;
+    if((iter->inx.count == 0) || (slice_inx(iter->inx, 0) >= slice_inx(iter->t.shape, 0))) return false;
     // Modulus the tensor size (a hack, TODO:: remove it)
     for_slice(iter->inx, i) slice_inx(iter->inx, i) = slice_inx(iter->inx, i) % slice_inx(iter->t.shape, i);
     return true;

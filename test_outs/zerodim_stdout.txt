@@ -1,0 +1,8 @@
+
+Tensor storage shape: 1
+
+Shape (0): ()
+Stride (0): ()
+Offset (0): ()
+Tensor: 
+761.000000

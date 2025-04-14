@@ -16,6 +16,7 @@ DEF_SLICE(f32);
 typedef struct Tensor Tensor;
 struct Tensor {
   f32_Slice storage;
+  // CAREFUL:: The following 3 slices can be null and still be valid (as long as no of dimensions is also 0)
   // TODO:: Here, you have to store 'number of dimensions' thrice, fix that
   Tensor_Inx shape;
   Tensor_Inx stride;
