@@ -257,7 +257,7 @@ Tensor tensor_slice_(Alloc_Interface allocr, Tensor src,
   return dst;
 }
 
-Tensor tensor_elemwise_manyop_inp(Tensor_Iter* out_iter, Tensor_Slice ts, f32_binop* op){
+Tensor tensor_map_op_inp(Tensor_Iter* out_iter, Tensor_Slice ts, f32_binop* op){
   // Maybe first assert that there are more than 1`tensors
   assert(((void)"There has to be at least 2 tensors for this operation to have meaning",
 	  ts.count >= 2));
@@ -280,16 +280,16 @@ Tensor tensor_elemwise_manyop_inp(Tensor_Iter* out_iter, Tensor_Slice ts, f32_bi
   return out_iter->t;
 }
 
-Tensor tensor_elemwise_manyop_new(Alloc_Interface allocr, Tensor_Slice ts, f32_binop* op){
+Tensor tensor_map_op_new(Alloc_Interface allocr, Tensor_Slice ts, f32_binop* op){
   Tensor ans = tensor_alloc_(allocr, slice_inx(ts, 0).shape);
   Tensor_Iter iter = tensor_iter_init(allocr, ans);
-  (void)tensor_elemwise_manyop_inp(&iter, ts, op);
+  (void)tensor_map_op_inp(&iter, ts, op);
   tensor_iter_deinit(allocr, &iter);
   return ans;
 }
 
-Tensor tensor_elemwise_op_new(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tensor t2){
-  return tensor_elemwise_manyop(allocr, MAKE_ARRAY_SLICE(Tensor, t1, t2), op);
+Tensor tensor_bin_op_new(Alloc_Interface allocr, Tensor t1, f32_binop* op, Tensor t2){
+  return tensor_map_op(allocr, MAKE_ARRAY_SLICE(Tensor, t1, t2), op);
 }
 
 f32 f32_add_op(f32 a, f32 b){

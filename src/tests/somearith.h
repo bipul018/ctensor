@@ -52,7 +52,7 @@ int arith_run(int argc, const char* argv[]){
   Tensor tn_sq = tensor_random(allocr, -2.f, 2.f, 3,3);
   Tensor tn_tr = tensor_permute(allocr, tn_sq, 0, 1);
   Tensor tn_sm = tensor_add(allocr, tn_sq, tn_tr);
-  Tensor tn_am = tensor_elemwise_op(allocr, tn_sq, subtract_two_floats, tn_tr);
+  Tensor tn_am = tensor_bin_op(allocr, tn_sq, subtract_two_floats, tn_tr);
 
   printf("\nThe square matrix A: (owner=%s): \n", BOOLSTR(tn_sq.owner));
   tensor_print(allocr, tn_sq);

@@ -110,19 +110,19 @@ f32 f32_min_op(f32 a, f32 b);
 
 // Need to send in than more one tensors here
 //   This is otherwise similar to chaining operations from 'elemwise_op'
-TENSOR_OP_DECLFN(tensor_elemwise_manyop, Tensor_Slice ts, f32_binop* op);
-#define tensor_elemwise_manyop(allocr_or_outiter, in_slice, op_fn)	\
-  TENSOR_OP_CHOOSE(tensor_elemwise_manyop, allocr_or_outiter, in_slice, op_fn)
+TENSOR_OP_DECLFN(tensor_map_op, Tensor_Slice ts, f32_binop* op);
+#define tensor_map_op(allocr_or_outiter, in_slice, op_fn)	\
+  TENSOR_OP_CHOOSE(tensor_map_op, allocr_or_outiter, in_slice, op_fn)
 
-TENSOR_OP_DECLFN(tensor_elemwise_op, Tensor t1, f32_binop* op, Tensor t2);
-#define tensor_elemwise_op(allocr_or_outiter, t1, opfn, t2)		\
-  TENSOR_OP_CHOOSE(tensor_elemwise_op, allocr_or_outiter, t1, opfn, t2)
+TENSOR_OP_DECLFN(tensor_bin_op, Tensor t1, f32_binop* op, Tensor t2);
+#define tensor_bin_op(allocr_or_outiter, t1, opfn, t2)		\
+  TENSOR_OP_CHOOSE(tensor_bin_op, allocr_or_outiter, t1, opfn, t2)
 
-// Following are some convienience functions that just use 'tensor_elemwise_op' with predefined operation functions
-#define tensor_add(allocr_or_outiter, t1, t2) tensor_elemwise_op(allocr_or_outiter, t1, f32_add_op, t2);
-#define tensor_prod(allocr_or_outiter, t1, t2) tensor_elemwise_op(allocr_or_outiter, t1, f32_prod_op, t2);
-#define tensor_max(allocr_or_outiter, t1, t2) tensor_elemwise_op(allocr_or_outiter, t1, f32_max_op, t2);
-#define tensor_min(allocr_or_outiter, t1, t2) tensor_elemwise_op(allocr_or_outiter, t1, f32_min_op, t2);
+// Following are some convienience functions that just use 'tensor_bin_op' with predefined operation functions
+#define tensor_add(allocr_or_outiter, t1, t2) tensor_bin_op(allocr_or_outiter, t1, f32_add_op, t2);
+#define tensor_prod(allocr_or_outiter, t1, t2) tensor_bin_op(allocr_or_outiter, t1, f32_prod_op, t2);
+#define tensor_max(allocr_or_outiter, t1, t2) tensor_bin_op(allocr_or_outiter, t1, f32_max_op, t2);
+#define tensor_min(allocr_or_outiter, t1, t2) tensor_bin_op(allocr_or_outiter, t1, f32_min_op, t2);
 
 // Vectorization like operation, left is scalar, right is elements of the tensor
 //Tensor tensor_vector_op(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv);
