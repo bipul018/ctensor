@@ -72,4 +72,12 @@ for arg in "$@"; do
 	echo "Running test case: $case_name"
 	./build/run_tests $case_name $echo_cmd
     fi
+    if [[ "$arg" =~ ^example: ]]; then
+	example_name=${arg#example:}
+
+	echo "Building and running example from: $example_name.c"
+
+	$CC $CFLAGS -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/example/"$example_name".c -o ./build/ex_$example_name
+	./build/ex_$example_name 
+    fi
 done
