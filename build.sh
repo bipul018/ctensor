@@ -77,7 +77,7 @@ for arg in "$@"; do
 
 	echo "Building and running example from: $example_name.c"
 
-	$CC $CFLAGS -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/example/"$example_name".c -o ./build/ex_$example_name
-	./build/ex_$example_name 
+	$CC $CFLAGS -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/example/"$example_name".c -o ./build/ex_"$example_name"
+	./build/ex_"$example_name"
     fi
 done
