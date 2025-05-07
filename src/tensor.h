@@ -20,7 +20,7 @@ struct Tensor {
   uptr* shape_base;
   uptr* stride_base;
   uptr* offset_base;
-  usize ndim;
+  uptr ndim;
   // An integer pointer for implementing reference counting (need to be allocated, obviously)
   long* refc;
 };
