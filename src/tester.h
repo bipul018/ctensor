@@ -271,9 +271,9 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
     // Now compare contents
     if(compare_files(actual_out_file, out_file) &&
        compare_files(actual_err_file, err_file)){
-      printf("Test passed\n");
+      printf("Test passed ✅\n");
     } else {
-      printf("Test failed\n");
+      printf("Test failed ❌\n");
     }
   }
 
