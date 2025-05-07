@@ -16,16 +16,14 @@ DEF_SLICE(f32);
 typedef struct Tensor Tensor;
 struct Tensor {
   f32_Slice storage;
-  // CAREFUL:: The following 3 slices can be null and still be valid (as long as no of dimensions is also 0)
-  // TODO:: Here, you have to store 'number of dimensions' thrice, fix that
-  Tensor_Inx shape;
-  Tensor_Inx stride;
-  Tensor_Inx offset;
-  // a flag to denote if this tensor owns the storage too
-  // TODO:: Make some external 'manager' later, or make reference counting
-  bool owner;
+  // Following are the bases to the various informations, not to be used directly
+  uptr* shape_base;
+  uptr* stride_base;
+  uptr* offset_base;
+  usize ndim;
+  // An integer pointer for implementing reference counting (need to be allocated, obviously)
+  long* refc;
 };
-
 
 // An iterator for using tensors
 typedef struct Tensor_Iter Tensor_Iter;
@@ -39,6 +37,10 @@ Tensor_Iter tensor_iter_init(Alloc_Interface allocr, Tensor t);
 void tensor_iter_reset(Tensor_Iter* iter);
 void tensor_iter_deinit(Alloc_Interface allocr, Tensor_Iter* iter);
 bool tensor_iter_next(Tensor_Iter* iter);
+Tensor_Inx tensor_shape(Tensor t);
+Tensor_Inx tensor_offset(Tensor t);
+Tensor_Inx tensor_stride(Tensor t);
+bool tensor_owner(Tensor t); // iif refc is NULL or refc = 1
 
 
 void tensor_print(Alloc_Interface allocr, Tensor t);
