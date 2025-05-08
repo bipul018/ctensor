@@ -22,6 +22,7 @@ struct Tensor {
   uptr* offset_base;
   uptr ndim;
   // An integer pointer for implementing reference counting (need to be allocated, obviously)
+  // the actul value = no of users - 1
   long* refc;
 };
 
@@ -40,7 +41,7 @@ bool tensor_iter_next(Tensor_Iter* iter);
 Tensor_Inx tensor_shape(Tensor t);
 Tensor_Inx tensor_offset(Tensor t);
 Tensor_Inx tensor_stride(Tensor t);
-bool tensor_owner(Tensor t); // iif refc is NULL or refc = 1
+bool tensor_owner(Tensor t); // iif refc is NULL or refc = 0
 
 
 void tensor_print(Alloc_Interface allocr, Tensor t);

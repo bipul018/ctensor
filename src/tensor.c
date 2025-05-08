@@ -30,6 +30,10 @@ static void tensor_force_fix_stride(Tensor_Inx shape, Tensor_Inx stride){
   }
 }
 
+#define shape(x) tensor_shape(x)
+#define stride(x) tensor_stride(x)
+#define offset(x) tensor_offset(x)
+
 // Not to be used directly, just a helper fxn
 Tensor tensor_alloc_(Alloc_Interface allocr, Tensor_Inx shape){
   // Find the final size
@@ -42,29 +46,30 @@ Tensor tensor_alloc_(Alloc_Interface allocr, Tensor_Inx shape){
   // Allocate the tensor resources
   Tensor t = {
     .storage = SLICE_ALLOC(allocr, f32, size),
-    .shape = SLICE_ALLOC(allocr, uptr, shape.count),
-    .stride = SLICE_ALLOC(allocr, uptr, shape.count),
-    .offset = SLICE_ALLOC(allocr, uptr, shape.count),
-    .owner = true,
+    .shape_base = SLICE_ALLOC(allocr, uptr, shape.count).data,
+    .stride_base = SLICE_ALLOC(allocr, uptr, shape.count).data,
+    .offset_base = SLICE_ALLOC(allocr, uptr, shape.count).data,
+    .ndim = shape.count,
+    .refc = nullptr, // 0 or nullptr means single owner
   };
   MEMCHK(t.storage.data);
   // Since if the shape is 0, the alloc function can return null or not
   //  so check following only if the shape is nonzero length
   if(shape.count > 0){
-    MEMCHK(t.shape.data);
-    MEMCHK(t.stride.data);
-    MEMCHK(t.offset.data);
+    MEMCHK(t.shape_base);
+    MEMCHK(t.stride_base);
+    MEMCHK(t.offset_base);
     // Form the shapes and strides
-    memcpy(t.shape.data, shape.data, uptr_slice_bytes(shape));
-    (void)memset(t.offset.data, 0, uptr_slice_bytes(t.offset));
-    tensor_force_fix_stride(t.shape, t.stride);
+    memcpy(t.shape_base, shape.data, uptr_slice_bytes(shape));
+    (void)memset(t.offset_base, 0, uptr_slice_bytes(offset(t)));
+    tensor_force_fix_stride(shape(t), stride(t));
   }
   return t;
 }
 
 // To be used because of macro issues
 Tensor tensor_assume_contiguous_fix_stride(Tensor in){
-  tensor_force_fix_stride(in.shape, in.stride);
+  tensor_force_fix_stride(shape(in), stride(in));
   return in;
 }
 
@@ -83,10 +88,10 @@ f32* tensor_get_ptr_(Tensor t, Tensor_Inx inx){
   // offset = sum(inx_i * stride_i), inx_i < shape_i
   uptr offset = 0;
   // TODO:: Dont assert, return nullptr or something
-  assert(((void)"Shape of tensors cannot be different", inx.count == t.shape.count));
+  assert(((void)"Shape of tensors cannot be different", inx.count == t.ndim));
   for_slice(inx, i){
-    assert(((void)"Index must be inside size", inx.data[i] < t.shape.data[i]));
-    offset += (t.offset.data[i] + inx.data[i]) * t.stride.data[i];
+    assert(((void)"Index must be inside size", inx.data[i] < shape(t).data[i]));
+    offset += (offset(t).data[i] + inx.data[i]) * stride(t).data[i];
   }
   assert(((void)"Should not have happened", offset < t.storage.count));
   return &t.storage.data[offset];
