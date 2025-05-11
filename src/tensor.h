@@ -23,6 +23,7 @@ struct Tensor {
   uptr ndim;
   // An integer pointer for implementing reference counting (need to be allocated, obviously)
   // the actul value = no of users - 1
+  // NULL means cannot transfer ownership
   long* refc;
 };
 
