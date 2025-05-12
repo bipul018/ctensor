@@ -12,12 +12,12 @@ int zerodim_run(int argc, const char* argv[]){
   tensor_get(t0) = 761.f;
 
   printf("\nTensor storage shape: %zu\n", t0.storage.count);
-  printf("\nShape (%zu): ", t0.shape.count);
-  print_tensor_inx(t0.shape);
-  printf("\nStride (%zu): ", t0.stride.count);
-  print_tensor_inx(t0.stride);
-  printf("\nOffset (%zu): ", t0.offset.count);
-  print_tensor_inx(t0.offset);
+  printf("\nShape (%zu): ", t0.ndim);
+  print_tensor_inx(tensor_shape(t0));
+  printf("\nStride (%zu): ", t0.ndim);
+  print_tensor_inx(tensor_stride(t0));
+  printf("\nOffset (%zu): ", t0.ndim);
+  print_tensor_inx(tensor_offset(t0));
   printf("\nTensor: \n");
   tensor_print(allocr, t0);
 

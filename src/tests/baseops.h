@@ -10,11 +10,11 @@ int base_run(int argc, const char* argv[]){
 
   printf("\nTensor storage shape: %zu\n", t.storage.count);
   printf("\nShape: ");
-  print_tensor_inx(t.shape);
+  print_tensor_inx(tensor_shape(t));
   printf("\nStride: ");
-  print_tensor_inx(t.stride);
+  print_tensor_inx(tensor_stride(t));
   printf("\nOffset: ");
-  print_tensor_inx(t.offset);
+  print_tensor_inx(tensor_offset(t));
 
   tensor_get(t, 1,1,1) = 34;
   tensor_get(t, 1,1,2) = 35;
@@ -29,18 +29,18 @@ int base_run(int argc, const char* argv[]){
 
   printf("\nTensor Yet Again: \n");
   printf("\nShape: ");
-  print_tensor_inx(t.shape);
+  print_tensor_inx(tensor_shape(t));
   printf("\nStride: ");
-  print_tensor_inx(t.stride);
+  print_tensor_inx(tensor_stride(t));
   printf("\nOffset: ");
-  print_tensor_inx(t.offset);
+  print_tensor_inx(tensor_offset(t));
   printf("\n");
   tensor_print(allocr, t);
 
   printf("\nTensor Yet Again: \n");
-  for_range(uptr, i, 0, slice_inx(t.shape, 0)){
-    for_range(uptr, j, 0, slice_inx(t.shape, 1)){
-      for_range(uptr, k, 0, slice_inx(t.shape, 2)){
+  for_range(uptr, i, 0, slice_inx(tensor_shape(t), 0)){
+    for_range(uptr, j, 0, slice_inx(tensor_shape(t), 1)){
+      for_range(uptr, k, 0, slice_inx(tensor_shape(t), 2)){
 	printf("(%zu, %zu, %zu) => %f\t", i, j, k, tensor_get(t, i, j, k));
       }
     }
@@ -55,11 +55,11 @@ int base_run(int argc, const char* argv[]){
   Tensor dt = tensor_contiguous(allocr, t);
 
   printf("\nShape: ");
-  print_tensor_inx(dt.shape);
+  print_tensor_inx(tensor_shape(dt));
   printf("\nStride: ");
-  print_tensor_inx(dt.stride);
+  print_tensor_inx(tensor_stride(dt));
   printf("\nOffset: ");
-  print_tensor_inx(dt.offset);
+  print_tensor_inx(tensor_offset(dt));
   printf("\n");
   tensor_print(allocr, dt);
   printf("\nTensor storage: ");
