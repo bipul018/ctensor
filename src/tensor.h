@@ -24,6 +24,7 @@ struct Tensor {
   // An integer pointer for implementing reference counting (need to be allocated, obviously)
   // the actul value = no of users - 1
   // NULL means cannot transfer ownership
+  // TODO::Later make it mean so that refc=NULL means stack allocated only (so freeing is safe)
   long* refc;
 };
 

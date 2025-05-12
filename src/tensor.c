@@ -114,6 +114,7 @@ bool tensor_inx_in_range(Tensor_Inx inxs, Tensor_Inx shape){
 }
 
 void tensor_free(Alloc_Interface allocr, Tensor* t){
+  // TODO:: When refc is actually implemented, also do freeing of variables
   // TODO:: Later need to implement atomic here
   if(t->refc != nullptr){
     if(t->refc[0] == 0){
