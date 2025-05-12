@@ -183,13 +183,11 @@ Tensor tensor_assume_contiguous_fix_stride(Tensor in);
   tensor_assume_contiguous_fix_stride					\
   ((Tensor){.storage = {.data = ((f32*)((f32 FOR_EACH_VA(INDEX_ARG_FE, __VA_ARGS__)) JUST_DO_NOTHING tensor_elems)), \
 			.count = (1 FOR_EACH_VA(PROD_FE, __VA_ARGS__)),}, \
-    .shape = {.data = ((uptr[]){__VA_ARGS__}),				\
-	      .count = VA_NARGS(__VA_ARGS__),},				\
-	      .stride = {.data = ((uptr[]){__VA_ARGS__}),		\
-			 .count = VA_NARGS(__VA_ARGS__),},		\
-	      .owner = true,						\
-	      .offset = {.data = ((uptr[VA_NARGS(__VA_ARGS__)]){0}),	\
-			 .count = VA_NARGS(__VA_ARGS__),}		\
-	    })
-   
+	    .shape_base = ((uptr[]){__VA_ARGS__}),			\
+	    .stride_base = ((uptr[]){__VA_ARGS__}),			\
+	    .offset_base = ((uptr[]){0}),				\
+	    .ndim = VA_NARGS(__VA_ARGS__),				\
+	    .refc = nullptr,						\
+  })
+
 #endif //TENSOR_H

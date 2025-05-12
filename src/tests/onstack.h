@@ -13,11 +13,11 @@ int stack_run(int argc, const char* argv[]){
       3,4,2);
     printf("\nTensor storage shape: %zu", t.storage.count);
     printf("\nShape: ");
-    print_tensor_inx(t.shape);
+    print_tensor_inx(tensor_shape(t));
     printf("\nStride: ");
-    print_tensor_inx(t.stride);
+    print_tensor_inx(tensor_stride(t));
     printf("\nOffset: ");
-    print_tensor_inx(t.offset);
+    print_tensor_inx(tensor_offset(t));
 
     printf("\nTensor: \n");
     tensor_print(allocr, t);
@@ -33,11 +33,11 @@ int stack_run(int argc, const char* argv[]){
     tensor_permute_in_place(t, 2,3);
     printf("\nTensor storage shape: %zu", t.storage.count);
     printf("\nShape: ");
-    print_tensor_inx(t.shape);
+    print_tensor_inx(tensor_shape(t));
     printf("\nStride: ");
-    print_tensor_inx(t.stride);
+    print_tensor_inx(tensor_stride(t));
     printf("\nOffset: ");
-    print_tensor_inx(t.offset);
+    print_tensor_inx(tensor_offset(t));
 
     printf("\nTensor: \n");
     tensor_print(allocr, t);
