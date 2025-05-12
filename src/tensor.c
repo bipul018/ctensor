@@ -115,10 +115,12 @@ bool tensor_inx_in_range(Tensor_Inx inxs, Tensor_Inx shape){
 
 void tensor_free(Alloc_Interface allocr, Tensor* t){
   // TODO:: Later need to implement atomic here
-  if((t->refc != nullptr) && (t->refc[0] == 0)){
-    SLICE_FREE(allocr, t->storage);
-  } else {
-    t->refc[0]--;
+  if(t->refc != nullptr){
+    if(t->refc[0] == 0){
+      SLICE_FREE(allocr, t->storage);
+    } else {
+      t->refc[0]--;
+    }
   }
   free_mem(allocr, t->shape_base);
   free_mem(allocr, t->stride_base);
