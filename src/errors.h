@@ -30,11 +30,16 @@ void free_error_chain(Error_Chain* err_chain);
 #ifdef ERRORS_H_IMPL
 
 DEF_SLICE(size_t);
-
+typedef struct Error_Buffer_Unit Error_Buffer_Unit;
+struct Error_Buffer_Unit{
+  Error_Buffer_Unit* next;
+  size_t size;
+};
+DEF_SLICE(Error_Buffer_Unit);
 static struct {
   Error_Chain_Slice pool;
   size_t curr;
-  size_t_Slice msg_pool;
+  Error_Buffer_Unit_Slice msg_pool;
   size_t msg_off;
 } global_error_pool_impl = {0};
 const struct Global_Error_Chain_Pool* global_error_pool = &global_error_pool_impl;
@@ -73,8 +78,9 @@ Error_Chain* new_error(Error_Chain* prev_err, const char* file_func, int lineno,
 
   // For error messages, you cannot reuse 'being used' buffers
   // First non-zero item denotes the 'size' of the following entry
-  for_slice(global_error_pool_impl.msg_pool, i){
-    
+  Error_Buffer_Unit_Slice msg_pool = global_error_pool_impl.msg_pool;
+  for_slice(msg_pool, i){
+     
   }
 
 }
