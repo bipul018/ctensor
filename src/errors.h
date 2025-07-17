@@ -39,12 +39,17 @@ DEF_SLICE(Error_Buffer_Unit);
 static struct {
   Error_Chain_Slice pool;
   size_t curr;
+  // Mostly only used during init and freeing
   Error_Buffer_Unit_Slice msg_pool;
-  size_t msg_off;
+  Error_Buffer_Unit* free_msgs;
 } global_error_pool_impl = {0};
 const struct Global_Error_Chain_Pool* global_error_pool = &global_error_pool_impl;
 
-Error_Chain* new_error(Error_Chain* prev_err, const char* file_func, int lineno, const char* fmt, ...){
+// Given an msg pool, get the >= matching if exists or the end (also removes it)
+
+// Given an msg pool, insert the new unit in ascending order
+
+Error_Chain* new_error(Error_Chain* prev_err, const char* file, const char* func, int lineno, const char* fmt, ...){
   // First find out if any error is free
   
   Error_Chain* perr = nullptr;
@@ -78,11 +83,37 @@ Error_Chain* new_error(Error_Chain* prev_err, const char* file_func, int lineno,
 
   // For error messages, you cannot reuse 'being used' buffers
   // First non-zero item denotes the 'size' of the following entry
-  Error_Buffer_Unit_Slice msg_pool = global_error_pool_impl.msg_pool;
-  for_slice(msg_pool, i){
-     
-  }
+  // TODO:: Handle no message case, for now just assert
+  assert(("Havent thought of any case where you dont even have error pool!!!",
+	  global_error_pool_impl.free_msgs != nullptr));
 
+  // Now find the length of the destination string
+  size_t msg_len = 0;
+  msg_len += snprintf(nullptr, 0, "%s:%d(%s) ",
+		      (file == nullptr?"":file),(func == nullptr?"":func),
+		      lineno);
+  va_list args={0};
+  va_start(args, fmt);
+  msg_len += vsnprintf(nullptr, 0, fmt, args);
+  va_end(args);
+
+  // Now find the node that allows this long output
+  Error_Buffer_Unit** p_free_node = &global_error_pool_impl.free_msgs;
+  while((*p_free_node)->next != nullptr &&
+	sizeof(Error_Buffer_Unit) * (*p_free_node)->size < (msg_len+1)){
+    p_free_node = &(*p_free_node)->next;
+  }
+  // Try to split the node if possible
+  size_t msg_node_count = (msg_len + sizeof(Error_Buffer_Unit) - 1) / sizeof(Error_Buffer_Unit);
+  // More/less, doesnt matter, just print with that size ??
+  Error_Buffer_Unit* chosen = *p_free_node;
+  if(chosen->size > msg_node_count){
+    // Truncate only, and re-sort
+
+  } else {
+    // Remove only
+
+  }
 }
 
 #endif // ERRORS_H_IMPL
