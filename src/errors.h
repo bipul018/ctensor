@@ -46,8 +46,42 @@ static struct {
 const struct Global_Error_Chain_Pool* global_error_pool = &global_error_pool_impl;
 
 // Given an msg pool, get the >= matching if exists or the end (also removes it)
+// Or returns the last entry
+Error_Buffer_Unit* get_appropriate_bfr(Error_Buffer_Unit** p_free_node, size_t msg_len){
+  assert(p_free_node != nullptr && (*p_free_node) != nullptr);
+
+  while((*p_free_node)->next != nullptr &&
+	sizeof(Error_Buffer_Unit) * (*p_free_node)->size < (msg_len+1)){
+    p_free_node = &(*p_free_node)->next;
+  }
+  Error_Buffer_Unit* chosen = *p_free_node;
+
+  // Just remove this node, splitting logic to be decided later
+  *p_free_node = chosen->next;
+  chosen->next = nullptr;
+  
+  return chosen;
+}
 
 // Given an msg pool, insert the new unit in ascending order
+void insert_asc_bfr(Error_Buffer_Unit** p_free_node, Error_Buffer_Unit* new_node){
+  // First find the node whose size is greater
+  assert(p_free_node != nullptr && new_node != nullptr);
+  while(*p_free_node != nullptr && (*p_free_node)->size < new_node->size){
+    p_free_node = &(*p_free_node)->next;
+  }
+  new_node->next = *p_free_node;
+  *p_free_node = new_node;
+}
+
+
+void free_error(Error_Chain* root){
+  // First free the inner buffer
+  
+  // Then free the error chain itself
+
+  
+}
 
 Error_Chain* new_error(Error_Chain* prev_err, const char* file, const char* func, int lineno, const char* fmt, ...){
   // First find out if any error is free
@@ -98,22 +132,32 @@ Error_Chain* new_error(Error_Chain* prev_err, const char* file, const char* func
   va_end(args);
 
   // Now find the node that allows this long output
-  Error_Buffer_Unit** p_free_node = &global_error_pool_impl.free_msgs;
-  while((*p_free_node)->next != nullptr &&
-	sizeof(Error_Buffer_Unit) * (*p_free_node)->size < (msg_len+1)){
-    p_free_node = &(*p_free_node)->next;
-  }
+  Error_Buffer_Unit* ch_buf = get_appropriate_bfr(&global_error_pool_impl.free_msgs, msg_len);
+
   // Try to split the node if possible
-  size_t msg_node_count = (msg_len + sizeof(Error_Buffer_Unit) - 1) / sizeof(Error_Buffer_Unit);
+  size_t msg_node_count = (msg_len + sizeof(Error_Buffer_Unit)) / sizeof(Error_Buffer_Unit);
   // More/less, doesnt matter, just print with that size ??
-  Error_Buffer_Unit* chosen = *p_free_node;
-  if(chosen->size > msg_node_count){
-    // Truncate only, and re-sort
-
-  } else {
-    // Remove only
-
+  if(ch_buf->size > msg_node_count){
+    // Truncate and insert
+    Error_Buffer_Unit* posterior = ch_buf + msg_node_count;
+    posterior->size = ch_buf->size - msg_node_count;
+    posterior->next = nullptr;
+    insert_asc_bfr(&global_error_pool_impl.free_msgs, posterior);
   }
+
+  // Now sprintf that thing
+  // TODO:: Find out if you need to care about the return value
+  (void)snprintf((char*)ch_buf, msg_len, "%s:%d(%s) ",
+		 (file == nullptr?"":file),(func == nullptr?"":func),
+		 lineno);
+  va_start(args, fmt);
+  msg_len += vsnprintf((char*)ch_buf+strlen((char*)ch_buf),
+		       msg_len - strlen((char*)ch_buf), fmt, args);
+  va_end(args);
+
+  perr->prev = prev_err;
+  perr->err_msg = (const char*)ch_buf;
+  return perr;
 }
 
 #endif // ERRORS_H_IMPL
