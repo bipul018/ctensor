@@ -92,15 +92,14 @@ static size_t calc_no_units_v(const char* file, const char* func, int lineno, co
 
 // Given an msg pool, get the >= matching if exists or the end (also removes it)
 // Or returns the last entry
-/*
-Error_Pool_Unit* get_appropriate_bfr(Error_Pool_Unit** p_free_node, size_t units){
+
+static Error_Pool_Unit* get_appropriate_node(Error_Pool_Unit** p_free_node, size_t units){
   assert(p_free_node != nullptr && (*p_free_node) != nullptr);
 
-  while((*p_free_node)->next != nullptr &&
-	sizeof(Error_Buffer_Unit) * (*p_free_node)->size < (msg_len+1)){
+  while((*p_free_node)->next != nullptr && (*p_free_node)->sz < units){
     p_free_node = &(*p_free_node)->next;
   }
-  Error_Buffer_Unit* chosen = *p_free_node;
+  Error_Pool_Unit* chosen = *p_free_node;
 
   // Just remove this node, splitting logic to be decided later
   *p_free_node = chosen->next;
@@ -110,17 +109,17 @@ Error_Pool_Unit* get_appropriate_bfr(Error_Pool_Unit** p_free_node, size_t units
 }
 
 // Given an msg pool, insert the new unit in ascending order
-void insert_asc_bfr(Error_Buffer_Unit** p_free_node, Error_Buffer_Unit* new_node){
+static void insert_asc_node(Error_Pool_Unit** p_free_node, Error_Pool_Unit* new_node){
   // First find the node whose size is greater
   assert(p_free_node != nullptr && new_node != nullptr);
-  while(*p_free_node != nullptr && (*p_free_node)->size < new_node->size){
+  while(*p_free_node != nullptr && (*p_free_node)->sz < new_node->sz){
     p_free_node = &(*p_free_node)->next;
   }
   new_node->next = *p_free_node;
   *p_free_node = new_node;
 }
 
-
+/*
 void free_error(Error_Chain* root){
   // First free the inner buffer
   
@@ -152,15 +151,20 @@ Error_Chain* new_error(Error_Chain* prev_err, const char* file, const char* func
   va_start(args, fmt);
   size_t node_num = calc_no_units_v(file, func, lineno, fmt, args);
   va_end(args);
-
-  // Find one from the free list (which should have at least one)
   
+  // Find one from the free list (which should have at least one)
+  Error_Pool_Unit* node = get_appropriate_node(&global_error_pool.free_units, node_num);
+
   // Write on the error
+  va_start(args, fmt);
+  Error_Pool_Unit* left = write_err_v(node, file, func, lineno, fmt, args);
+  va_end(args);
 
   // If there was more, reinsert the remaining part
+  if(left != nullptr) insert_asc_node(&global_error_pool.free_units, left);
 
   // Return the error node
-
+  return &node->chn;
   
   /*
   Error_Pool_Unit* perr = nullptr;
@@ -285,7 +289,7 @@ int main(int argc, char* argv[]){
   printf("Sizeof error struct : %zu\n", sizeof(Error_Pool_Unit));
   printf("The required size is: %zu\n", sz);
 
-  Error_Pool_Unit errs[2] = {0};
+  Error_Pool_Unit errs[3] = {0};
   errs->sz = _countof(errs);
   errs->next = (void*)0x1234; // Just a dummy value
 
@@ -302,8 +306,17 @@ int main(int argc, char* argv[]){
 
 
 
-  Error_Chain* err = new_error(nullptr, __FILE__, __func__, __LINE__, "Couldnt do jack shit");
+  Error_Chain* err = new_error(nullptr, __FILE__, __func__, __LINE__, "Maybe I can do things");
+  printf("err is %p\n", err);
+  if(err != nullptr){
+    printf("Inside err is msg \n%s, prev is %p\n", err->msg, err->prev);
+  }
 
+  err = new_error(err, __FILE__, __func__, __LINE__, "Could do stuff, not an error");
+  printf("err is %p\n", err);
+  if(err != nullptr){
+    printf("Inside err is msg \n%s, prev is %p\n", err->msg, err->prev);
+  }
   
   free_global_error_chain_pool(allocr);
   return 0;
