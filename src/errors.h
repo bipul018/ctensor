@@ -129,6 +129,19 @@ void free_error(Error_Chain* root){
 }
 */
 void free_error(Error_Chain* err_chain){
+  // First of all find the length of the message
+  
+  // Calculate the number of nodes that the message is supposed to occupy
+
+  // Save the next pointer in the error chain
+
+  // Reinterpret the err as the node 
+
+  // Reinsert in the ascending order
+
+  // Recursively (or iteratively) call the next error in the chain
+
+
   assert(("Not implemented yet!!!", false));
 }
 Error_Chain* new_error(Error_Chain* prev_err, const char* file, const char* func, int lineno, const char* fmt, ...){
@@ -162,7 +175,7 @@ Error_Chain* new_error(Error_Chain* prev_err, const char* file, const char* func
 
   // If there was more, reinsert the remaining part
   if(left != nullptr) insert_asc_node(&global_error_pool.free_units, left);
-
+  node->chn.prev = prev_err;
   // Return the error node
   return &node->chn;
   
@@ -275,7 +288,7 @@ int main(int argc, char* argv[]){
 #endif //ERRORS_H_KEEP_EXE
 
   Alloc_Interface allocr = gen_std_allocator();
-  init_global_error_chain_pool(allocr, 2048);
+  init_global_error_chain_pool(allocr, 10);
 
   printf("%p, %zu, %p, %p, %zu!\n",
 	 global_error_pool.pool.data,
@@ -317,7 +330,7 @@ int main(int argc, char* argv[]){
   if(err != nullptr){
     printf("Inside err is msg \n%s, prev is %p\n", err->msg, err->prev);
   }
-  
+  free_error(err);
   free_global_error_chain_pool(allocr);
   return 0;
 }
