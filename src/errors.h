@@ -22,10 +22,13 @@ struct Error_Chain{
 // Only if this is a fresh error, then you can return nullptr (or you probably can also assert that part)
 void init_global_error_chain_pool(Alloc_Interface allocr, size_t count);
 void free_global_error_chain_pool(Alloc_Interface allocr);
-Error_Chain* new_error(Error_Chain* prev_err, const char* file, const char* func, int lineno, const char* fmt, ...);
+Error_Chain* new_error_(Error_Chain* prev_err, const char* file, const char* func, int lineno, const char* fmt, ...);
+#define new_error(prev_err, ...) new_error_((prev_err), __FILE__, __func__, __LINE__, __VA_ARGS__)
 // TODO:: Find out if this is even worth doing at all
 void free_error(Error_Chain* err_chain);
-
+// TODO:: Find if another way than including the entire stdio.h is possible
+#include <stdio.h>
+void print_error(FILE* dst, Error_Chain* err);
 
 #ifdef ERRORS_H_IMPL
 #include<stdarg.h>
@@ -119,32 +122,35 @@ static void insert_asc_node(Error_Pool_Unit** p_free_node, Error_Pool_Unit* new_
   *p_free_node = new_node;
 }
 
-/*
-void free_error(Error_Chain* root){
-  // First free the inner buffer
-  
-  // Then free the error chain itself
-
-  
-}
-*/
+// TODO:: Implement merge logic later someday
 void free_error(Error_Chain* err_chain){
+  if(err_chain == nullptr) return;
   // First of all find the length of the message
+  const size_t msg_len = strlen(err_chain->msg);
   
   // Calculate the number of nodes that the message is supposed to occupy
+  const size_t consumed = msg_len + 1 + offsetof(Error_Chain, msg);
+  const size_t unit_cnt = (consumed + sizeof(Error_Pool_Unit) - 1) / sizeof(Error_Pool_Unit);
 
   // Save the next pointer in the error chain
+  Error_Chain* prev = err_chain->prev;
 
-  // Reinterpret the err as the node 
+  // Reinterpret the err as the node
+  Error_Pool_Unit* node = (Error_Pool_Unit*)err_chain;
+  node->next = nullptr;
+  node->sz = unit_cnt;
 
   // Reinsert in the ascending order
-
+  insert_asc_node(&global_error_pool.free_units, node);
   // Recursively (or iteratively) call the next error in the chain
-
-
-  assert(("Not implemented yet!!!", false));
+  free_error(prev);
 }
-Error_Chain* new_error(Error_Chain* prev_err, const char* file, const char* func, int lineno, const char* fmt, ...){
+void print_error(FILE* dst, Error_Chain* err){
+  for(;err != nullptr; err = err->prev){
+    fprintf(dst, "%s\n", err->msg);
+  }
+}
+Error_Chain* new_error_(Error_Chain* prev_err, const char* file, const char* func, int lineno, const char* fmt, ...){
   // First find out if any error is free
   if(global_error_pool.free_units == nullptr){
     // Try to reclaim from the top of prev_err
@@ -278,6 +284,18 @@ static Error_Pool_Unit* write_err(Error_Pool_Unit* err, const char* file, const 
   return ans;
 }
 
+static void print_free_pool(void){
+  Error_Pool_Unit* head = global_error_pool.free_units;
+  printf("---------- Free errors ----------\n");
+  while(head != nullptr){
+    printf("(%zu - %zu){%zu}\n", head - global_error_pool.pool.data,
+	   (head - global_error_pool.pool.data) + head->sz,
+	   head->sz);
+    head = head->next;
+  }
+  printf("---------------------------------\n");
+}
+
 int main(int argc, char* argv[]){
 
 #ifndef ERRORS_H_KEEP_EXE
@@ -288,7 +306,7 @@ int main(int argc, char* argv[]){
 #endif //ERRORS_H_KEEP_EXE
 
   Alloc_Interface allocr = gen_std_allocator();
-  init_global_error_chain_pool(allocr, 10);
+  init_global_error_chain_pool(allocr, 109);
 
   printf("%p, %zu, %p, %p, %zu!\n",
 	 global_error_pool.pool.data,
@@ -297,6 +315,8 @@ int main(int argc, char* argv[]){
 	 global_error_pool.free_units->next,
 	 global_error_pool.free_units->sz);
   
+  print_free_pool();
+
   size_t sz = calc_no_units(__FILE__, __func__, __LINE__, "%s", "hi");
 
   printf("Sizeof error struct : %zu\n", sizeof(Error_Pool_Unit));
@@ -319,18 +339,26 @@ int main(int argc, char* argv[]){
 
 
 
-  Error_Chain* err = new_error(nullptr, __FILE__, __func__, __LINE__, "Maybe I can do things");
+  //Error_Chain* err = new_error_(nullptr, __FILE__, __func__, __LINE__, "Maybe I can do things");
+  Error_Chain* err = new_error(nullptr, "Maybe I can do things");
   printf("err is %p\n", err);
   if(err != nullptr){
     printf("Inside err is msg \n%s, prev is %p\n", err->msg, err->prev);
   }
 
-  err = new_error(err, __FILE__, __func__, __LINE__, "Could do stuff, not an error");
+  print_free_pool();
+  err = new_error(err, "Could do stuff, not an error. %s",  "Lets quickly finish this part of error reporting and continue in the core logic!!!");
   printf("err is %p\n", err);
   if(err != nullptr){
-    printf("Inside err is msg \n%s, prev is %p\n", err->msg, err->prev);
+    printf("Inside err is msg \n%s\n   prev is %p\n", err->msg, err->prev);
   }
+
+  printf("Printing the error chain...\n\n");
+  print_error(stdout, err);
+  
+  print_free_pool();
   free_error(err);
+  print_free_pool();
   free_global_error_chain_pool(allocr);
   return 0;
 }
