@@ -46,9 +46,9 @@ if [[ -z "$CC" ]]; then
 fi
 
 echo "Compiling core object files using $CC ..."
-$CC $CFLAGS -c -I$UTILS_PATH -I./src/ ./src/tensor.c -o ./build/tensor.obj
+$CC $CFLAGS -c -I$UTILS_PATH -I$(pwd)/src/ $(pwd)/src/tensor.c -o $(pwd)/build/tensor.obj
 echo "Compiling the tests..."
-$CC $CFLAGS -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/tests/run.c -o ./build/run_tests
+$CC $CFLAGS -I$UTILS_PATH -I$(pwd)/src/ $(pwd)/build/tensor.obj $(pwd)/src/tests/run.c -o $(pwd)/build/run_tests
 echo "Compiled!"
 
 echo_cmd="echo"
@@ -77,7 +77,7 @@ for arg in "$@"; do
 
 	echo "Building and running example from: $example_name.c"
 
-	$CC $CFLAGS -I$UTILS_PATH -I./src/ ./build/tensor.obj ./src/example/"$example_name".c -o ./build/ex_"$example_name"
-	./build/ex_"$example_name"
+	$CC $CFLAGS -I$UTILS_PATH -I$(pwd)/src/ $(pwd)/build/tensor.obj $(pwd)/src/example/"$example_name".c -o $(pwd)/build/ex_"$example_name"
+        $(pwd)/build/ex_"$example_name"
     fi
 done
