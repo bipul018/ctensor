@@ -1,6 +1,6 @@
+#define ERRORS_H_IMPL
 #include "tensor.h"
 #include <stdio.h>
-
 
 void print_tensor_inx(Tensor_Inx inxs){
   printf("(");
@@ -30,6 +30,35 @@ static void tensor_force_fix_stride(Tensor_Inx shape, Tensor_Inx stride){
   }
 }
 
+// A function to determine if the tensor is valid
+//   A valid tensor is the one with no error state, and all the fields allocated appropriately
+static bool tensor_valid(Tensor t){
+  if(t.was_err) return false;
+  if(t.storage.data == nullptr) return false;
+  // Since if the shape is 0, the alloc function can return null or not
+  //  so check following only if the shape is nonzero length
+  if(t.shape.count > 0){
+    if(t.shape.data == nullptr) return false;
+    if(t.stride.data == nullptr) return false;
+    if(t.offset.data == nullptr) return false;
+  }
+  return true;
+}
+
+// Helper macro to use to easily construct the tensor error
+#define tensor_err(...)						\
+  (Tensor){ .was_err = true, .err = new_error(__VA_ARGS__), }
+
+// To be used in all cases in this library before you use the tensor passed by the user
+// TODO:: Make a special compiler macro to ignore all errors 
+#define tensor_try(tnsr)					\
+  do{								\
+    if(!tensor_valid(tnsr)){					\
+      return tensor_err(((tnsr).was_err?(tnsr).err:nullptr),	\
+			"Tried to use invalid tensor `%s`", #tnsr);	\
+    }								\
+  }while(0)
+
 // Not to be used directly, just a helper fxn
 Tensor tensor_alloc_(Alloc_Interface allocr, Tensor_Inx shape){
   // Find the final size
@@ -47,13 +76,11 @@ Tensor tensor_alloc_(Alloc_Interface allocr, Tensor_Inx shape){
     .offset = SLICE_ALLOC(allocr, uptr, shape.count),
     .owner = true,
   };
-  MEMCHK(t.storage.data);
-  // Since if the shape is 0, the alloc function can return null or not
-  //  so check following only if the shape is nonzero length
+  if(!tensor_valid(t)){
+    tensor_free(allocr, &t);
+    return tensor_err(nullptr, "Failed to create tensor of dim %zu", shape.count);
+  }
   if(shape.count > 0){
-    MEMCHK(t.shape.data);
-    MEMCHK(t.stride.data);
-    MEMCHK(t.offset.data);
     // Form the shapes and strides
     memcpy(t.shape.data, shape.data, uptr_slice_bytes(shape));
     (void)memset(t.offset.data, 0, uptr_slice_bytes(t.offset));
@@ -61,16 +88,16 @@ Tensor tensor_alloc_(Alloc_Interface allocr, Tensor_Inx shape){
   }
   return t;
 }
-
 // To be used because of macro issues
 Tensor tensor_assume_contiguous_fix_stride(Tensor in){
+  tensor_try(in);
   tensor_force_fix_stride(in.shape, in.stride);
   return in;
 }
 
-
 Tensor tensor_create_(Alloc_Interface allocr, f32 fill_elem, Tensor_Inx shape){
   Tensor t = tensor_alloc_(allocr, shape);
+  tensor_try(t);
   // fill the storage
   for_slice(t.storage, i){
     slice_inx(t.storage, i) = fill_elem;
@@ -80,14 +107,17 @@ Tensor tensor_create_(Alloc_Interface allocr, f32 fill_elem, Tensor_Inx shape){
 
 
 f32* tensor_get_ptr_(Tensor t, Tensor_Inx inx){
+  // TODO:: Find some way of reporting error, or make this private fxn
+  if(!tensor_valid(t)) return nullptr;
   // offset = sum(inx_i * stride_i), inx_i < shape_i
   uptr offset = 0;
-  // TODO:: Dont assert, return nullptr or something
+  // TODO:: Dont assert, find some way to return error chain ?
   assert(((void)"Shape of tensors cannot be different", inx.count == t.shape.count));
   for_slice(inx, i){
     assert(((void)"Index must be inside size", inx.data[i] < t.shape.data[i]));
     offset += (t.offset.data[i] + inx.data[i]) * t.stride.data[i];
   }
+  // TODO:: Dont assert, find some way to return error chain ?
   assert(((void)"Should not have happened", offset < t.storage.count));
   return &t.storage.data[offset];
 }
@@ -101,14 +131,20 @@ bool tensor_inx_in_range(Tensor_Inx inxs, Tensor_Inx shape){
 }
 
 void tensor_free(Alloc_Interface allocr, Tensor* t){
-  if(t->owner) SLICE_FREE(allocr, t->storage);
-  t->owner = false;
-  SLICE_FREE(allocr, t->shape);
-  SLICE_FREE(allocr, t->stride);
-  SLICE_FREE(allocr, t->offset);
+  if(t->was_err){
+    free_error(t->err);
+  }
+  else {
+    if(t->owner) SLICE_FREE(allocr, t->storage);
+    t->owner = false;
+    SLICE_FREE(allocr, t->shape);
+    SLICE_FREE(allocr, t->stride);
+    SLICE_FREE(allocr, t->offset);
+  }
 }
 
 Tensor tensor_dupe(Alloc_Interface allocr, Tensor t){
+  tensor_try(t);
   Tensor out = {
     .storage = make_copy_f32_slice(allocr, t.storage),
     .shape = make_copy_uptr_slice(allocr, t.shape),
@@ -116,32 +152,30 @@ Tensor tensor_dupe(Alloc_Interface allocr, Tensor t){
     .offset = make_copy_uptr_slice(allocr, t.offset),
     .owner = true,
   };
-  MEMCHK(out.storage.data);
-  // Since if the shape is 0, the alloc function can return null or not
-  //  so check following only if the shape is nonzero length
-  if(t.shape.count > 0){
-    MEMCHK(out.shape.data);
-    MEMCHK(out.stride.data);
-    MEMCHK(out.offset.data);
+  if(!tensor_valid(out)){
+    tensor_free(allocr, &out);
+    return tensor_err(nullptr, "Failed to create tensor of dim %zu", t.shape.count);
   }
   return out;
 }
 
 Tensor tensor_contiguous(Alloc_Interface allocr, Tensor t){
+  tensor_try(t);
   // Create equivalent sized tensor
   Tensor newt = tensor_alloc_(allocr, t.shape);
-
+  tensor_try(newt);
+  // TODO:: Find a better way to use and manage iterators, maybe a 'pool'???
   Tensor_Iter iter = tensor_iter_init(allocr, t);
   while(tensor_iter_next(&iter)){
     *tensor_get_ptr_(newt, iter.inx) = *tensor_get_ptr_(t, iter.inx);
   }
   tensor_iter_deinit(allocr, &iter);
-
   return newt;
 }
 
 Tensor tensor_random_(Alloc_Interface allocr, f32 min_val, f32 max_val, Tensor_Inx shape){
   Tensor rant = tensor_alloc_(allocr, shape);
+  tensor_try(rant);
 
   for_slice(rant.storage, i){
     rant.storage.data[i] = ((rand() * 1.0) / (RAND_MAX-1)) * (max_val - min_val) + min_val;
@@ -152,6 +186,7 @@ Tensor tensor_random_(Alloc_Interface allocr, f32 min_val, f32 max_val, Tensor_I
 
 Tensor tensor_range_(Alloc_Interface allocr, f32 start_val, f32 step_size, Tensor_Inx shape){
   Tensor rent = tensor_alloc_(allocr, shape);
+  tensor_try(rent);
 
   for_slice(rent.storage, i){
     rent.storage.data[i] = start_val;
@@ -161,6 +196,15 @@ Tensor tensor_range_(Alloc_Interface allocr, f32 start_val, f32 step_size, Tenso
 }
 
 void tensor_print(Alloc_Interface allocr, Tensor t){
+  if(!tensor_valid(t)){
+    // Print the error chain here
+    fprintf(stderr, "Error during tensor creation\n");
+    if(t.was_err){
+      print_error(stderr, t.err);
+    } else {
+      fprintf(stderr, "No available error info\n");
+    }
+  }
   Tensor_Iter iter = tensor_iter_init(allocr, t);
   while(tensor_iter_next(&iter)){
     size_t zeros = 0;
@@ -190,8 +234,10 @@ void tensor_print(Alloc_Interface allocr, Tensor t){
 }
 
 void tensor_permute_in_place(Tensor t, uptr inx1, uptr inx2){
-  assert(((void)"Index out of bounds", inx1 < t.shape.count));
-  assert(((void)"Index out of bounds", inx2 < t.shape.count));
+  // TODO:: Find some way of reporting error, or make this private fxn
+  if(!tensor_valid(t)) return;
+  if(inx1 >= t.shape.count) return;
+  if(inx2 >= t.shape.count) return;
 
   if(inx1 != inx2){
     _swap(t.shape.data[inx1], t.shape.data[inx2]);
@@ -201,6 +247,7 @@ void tensor_permute_in_place(Tensor t, uptr inx1, uptr inx2){
 }
 
 Tensor tensor_permute(Alloc_Interface allocr, Tensor oldt, uptr inx1, uptr inx2){
+  tensor_try(oldt);
   Tensor newt = {
     .storage = oldt.storage, //shares storage
     .shape = make_copy_uptr_slice(allocr, oldt.shape),
@@ -208,12 +255,10 @@ Tensor tensor_permute(Alloc_Interface allocr, Tensor oldt, uptr inx1, uptr inx2)
     .offset = make_copy_uptr_slice(allocr, oldt.offset),
     .owner = false,
   };
-  // Since if the shape is 0, the alloc function can return null or not
-  //  so check following only if the shape is nonzero length
-  if(oldt.shape.count > 0){
-    MEMCHK(newt.shape.data);
-    MEMCHK(newt.stride.data);
-    MEMCHK(newt.offset.data);
+  // TODO:: ensure that all the allocation fxns dont do just 'tensor_try' 
+  if(!tensor_valid(newt)){
+    tensor_free(allocr, &newt);
+    return tensor_err(nullptr, "Failed to create tensor of dim %zu", oldt.shape.count);
   }
 
   tensor_permute_in_place(newt, inx1, inx2);
@@ -223,22 +268,28 @@ Tensor tensor_permute(Alloc_Interface allocr, Tensor oldt, uptr inx1, uptr inx2)
 
 Tensor tensor_slice_(Alloc_Interface allocr, Tensor src,
 		     Tensor_Inx start, Tensor_Inx end){
+  tensor_try(src);
   // Assert if indexes are of valid dimension
-  assert(((void)"Dimensions of starting tensor index must be same as tensor dimension",
-	  start.count == src.shape.count));
-  assert(((void)"Dimensions of ending tensor index must be same as tensor dimension",
-	  end.count == src.shape.count));
+  if(start.count != src.shape.count){
+    return tensor_err(nullptr, "Dimensions of starting tensor index (%zu) != desired tensor dimension (%zu)", start.count, src.shape.count);
+  }
+  if(end.count != src.shape.count){
+    return tensor_err(nullptr, "Dimensions of ending tensor index (%zu) != desired tensor dimension (%zu)", end.count, src.shape.count);
+  }
 
   // Assert if the indexes are in valid ranges
   for_slice(src.shape, i){
-    assert(((void)"Starting index cannot be greater or equal to size of tensor",
-	    start.data[i] < src.shape.data[i]));
-    assert(((void)"Starting index cannot be greater than size of tensor",
-	    end.data[i] <= src.shape.data[i]));
+    if(start.data[i] >= src.shape.data[i]){
+      return tensor_err(nullptr, "Starting index (%zu) >= size of tensor (%zu)",
+			start.data[i], src.shape.data[i]);
+    }
+    if(end.data[i] > src.shape.data[i]){
+      return tensor_err(nullptr, "Ending index (%zu) > size of tensor (%zu)",
+			end.data[i], src.shape.data[i]);
+    }
   }
 
   // Create new non-owning tensor
-
   Tensor dst = {
     .storage = src.storage, //shares storage
     .shape = make_copy_uptr_slice(allocr, src.shape),
@@ -247,33 +298,36 @@ Tensor tensor_slice_(Alloc_Interface allocr, Tensor src,
     .owner = false,
   };
 
-  if(src.shape.count>0){
-    MEMCHK(dst.shape.data);
-    MEMCHK(dst.stride.data);
-    MEMCHK(dst.offset.data);
+  if(!tensor_valid(dst)){
+    tensor_free(allocr, &dst);
+    return tensor_err(nullptr, "Failed to create tensor of dim %zu", src.shape.count);
   }
+
   // Slice-em
   // shape = end - start, offset += start
   for_slice(dst.shape, i){
     dst.shape.data[i] = end.data[i] - start.data[i];
     dst.offset.data[i] += start.data[i];
   }
-
   return dst;
 }
 
 Tensor tensor_map_op_inp(Tensor_Iter* out_iter, Tensor_Slice ts, f32_binop* op){
-  // Maybe first assert that there are more than 1`tensors
-  assert(((void)"There has to be at least 2 tensors for this operation to have meaning",
-	  ts.count >= 2));
-  // Then assert that each tensor is of same shape
+  if(ts.count < 2)
+    return tensor_err(nullptr, "Minimum tensors required for map operation is 2, found %zu", ts.count);
+  tensor_try(slice_inx(ts, 0));
   for_range(size_t, i, 1, ts.count){
-    assert(((void)"Differently shaped tensors cannot be used in elementwise operation", equal_tensor_inx(slice_inx(ts, 0).shape, slice_inx(ts, i).shape)));
+    // TODO:: Add more info in the error message here
+    tensor_try(slice_inx(ts, i));
+    if(!equal_tensor_inx(slice_inx(ts, 0).shape, slice_inx(ts, i).shape))
+      // Would be cool if you could somehow print the shapes also
+      return tensor_err(nullptr, "Tensor at index %zu has different shape from tensor at index %zu for mapping operation", i, 0);
+  }
+  // TODO:: Decide if you need to also assert if iterator is good to go
+  if(!equal_tensor_inx(slice_inx(ts,0).shape, out_iter->t.shape)){
+    return tensor_err(nullptr, "Desired outputt tensor has different shape from input tensors");
   }
 
-  // Assert that the output tensor is also of required shape
-  assert(((void)"The output tensor should also be of the size of input tensors",
-	  equal_tensor_inx(slice_inx(ts,0).shape, out_iter->t.shape)));
   while(tensor_iter_next(out_iter)){
     *tensor_get_ptr_(out_iter->t, out_iter->inx) = *tensor_get_ptr_(ts.data[0], out_iter->inx);
     for_range(size_t, i, 1, ts.count){
@@ -286,10 +340,22 @@ Tensor tensor_map_op_inp(Tensor_Iter* out_iter, Tensor_Slice ts, f32_binop* op){
 }
 
 Tensor tensor_map_op_new(Alloc_Interface allocr, Tensor_Slice ts, f32_binop* op){
+  if(ts.count == 0) return tensor_err(nullptr, "No tensor supplied as input for map operation");
   Tensor ans = tensor_alloc_(allocr, slice_inx(ts, 0).shape);
+  if(!tensor_valid(ans)){
+    tensor_free(allocr, &ans);
+    return tensor_err(nullptr, "Failed to create tensor of dim %zu", slice_inx(ts, 0).shape.count);
+  }
   Tensor_Iter iter = tensor_iter_init(allocr, ans);
-  (void)tensor_map_op_inp(&iter, ts, op);
+  // If the fxn fails, this will be true, as the result tensor is already valid
+  Tensor if_err = tensor_map_op_inp(&iter, ts, op);
   tensor_iter_deinit(allocr, &iter);
+  // Although the input was valid, the output will be an error, need to not free that 
+  if(if_err.was_err){
+    tensor_free(allocr, &ans);
+    // Need to try on 'if_err' but free 'ans' cuz they are different entities in this branch
+    tensor_try(if_err);
+  }
   return ans;
 }
 
@@ -316,6 +382,8 @@ f32 f32_min_op(f32 a, f32 b){
   return ((a<b)?a:b);
 }
 Tensor tensor_vector_op_inp(Tensor_Iter* out_iter, f32 sv, f32_binop* op, Tensor tv){
+  tensor_try(tv);
+  // TODO:: Decide if you need to also assert if iterator is good to go
   while(tensor_iter_next(out_iter)){
     *tensor_get_ptr_(out_iter->t, out_iter->inx) = 
       op(sv, *tensor_get_ptr_(tv, out_iter->inx));
@@ -323,8 +391,11 @@ Tensor tensor_vector_op_inp(Tensor_Iter* out_iter, f32 sv, f32_binop* op, Tensor
   return out_iter->t;
 }
 Tensor tensor_vector_op_new(Alloc_Interface allocr, f32 sv, f32_binop* op, Tensor tv){
+  tensor_try(tv);
   Tensor ans = tensor_alloc_(allocr, tv.shape);
+  tensor_try(ans);
   Tensor_Iter iter = tensor_iter_init(allocr, ans);
+  // this operation will succeed as tv is valid, and nothing else is extra factor
   (void)tensor_vector_op(&iter, sv, op, tv);
   tensor_iter_deinit(allocr, &iter);
   return ans;
@@ -332,28 +403,36 @@ Tensor tensor_vector_op_new(Alloc_Interface allocr, f32 sv, f32_binop* op, Tenso
 
 Tensor tensor_reduce_op_inp(Tensor_Iter* out_iter, Tensor tv, uptr dim, f32_binop* op){
   // For reduce operations to work the number of dimensions should be > 0
-  assert(((void)"Cannot do reduction on 0 dimensional tensors", tv.shape.count > 0));
-
+  if(tv.shape.count == 0){
+    return tensor_err(nullptr, "Reduction attepted on a 0 dimensional tensor");
+  }
   // Assert that the dim is in range
-  assert(((void)"The dim to work on should exist in input tensor",
-	  dim < tv.shape.count));
-
+  if(dim >= tv.shape.count){
+    return tensor_err(nullptr, "Invalid choice of dimension (%zu) when tensor is %zu dimensional",
+		      dim, tv.shape.count);
+  }
   // Assert that out_iter's tensor's dim is 1 less
-  assert(((void)"The output tensor's dimension count should be 1 less than input",
-	  out_iter->t.shape.count == (tv.shape.count -1)));
-
+  if(out_iter->t.shape.count != (tv.shape.count -1)){
+    return tensor_err(nullptr, "Expected output tensor of dimension %zu, found %zu",
+		      tv.shape.count - 1, out_iter->t.shape.count);
+  }
   // Assert that the input has at least 1 elem in the dim index
-  assert(((void)"The input tensor to reduce must have non-zero dim in the chosen index",
-	  slice_inx(tv.shape, dim) > 0));
-
+  if(slice_inx(tv.shape, dim) == 0){
+    return tensor_err(nullptr, "Expected at least 1 element in dimension %zu of input tensor, found none",
+		      dim);
+  }
   // Assert that the out_iter's tensor's shape matches after removing the dim
   for_slice(out_iter->t.shape, i){
     if(i < dim){
-      assert(((void)"The dimension of output must match input except for the chosen dimension to work on",
-	      slice_inx(tv.shape, i) == slice_inx(out_iter->t.shape, i)));
+      if(slice_inx(tv.shape, i) != slice_inx(out_iter->t.shape, i)){
+	return tensor_err(nullptr, "The %zu-th dimension of output mismatches. Expected %zu, got %zu",
+			  i, slice_inx(tv.shape,i), slice_inx(out_iter->t.shape, i));
+      }
     } else if(i >= dim){
-      assert(((void)"The dimension of output must match input except for the chosen dimension to work on",
-	      slice_inx(tv.shape, i+1) == slice_inx(out_iter->t.shape, i)));
+      if(slice_inx(tv.shape, i+1) != slice_inx(out_iter->t.shape, i)){
+	return tensor_err(nullptr, "The %zu-th dimension of output mismatches. Expected %zu, got %zu",
+			  i, slice_inx(tv.shape,i+1), slice_inx(out_iter->t.shape, i));
+      }
     }
   }
 
@@ -386,20 +465,32 @@ Tensor tensor_reduce_op_inp(Tensor_Iter* out_iter, Tensor tv, uptr dim, f32_bino
 }
 
 Tensor tensor_reduce_op_new(Alloc_Interface allocr, Tensor tv, uptr dim, f32_binop* op){
-  assert(((void)"Input tensor must be at least 1 dimensional",
-	  tv.shape.count > 0));
+  if(tv.shape.count == 0){
+    return tensor_err(nullptr, "Reduction attepted on a 0 dimensional tensor");
+  }
   Tensor_Inx out_shape = SLICE_ALLOC(allocr, uptr, tv.shape.count - 1);
-  if(out_shape.count > 0) MEMCHK(out_shape.data);
-
+  if(out_shape.count > 0 && out_shape.data == nullptr)
+    // TODO:: Find out if you need to free out_shape
+    // TODO:: Find a way to not have to allocate such temporary shapes all the times
+    return tensor_err(nullptr, "Couldnt allocate temporary shape array");
   for_slice(out_shape, i){
     if(i < dim) slice_inx(out_shape, i) = slice_inx(tv.shape, i);
     else if(i >= dim) slice_inx(out_shape, i) = slice_inx(tv.shape, i+1);
   }
   Tensor ans = tensor_alloc_(allocr, out_shape);
   SLICE_FREE(allocr, out_shape);
-
+  if(!tensor_valid(ans)){
+    tensor_free(allocr, &ans);
+    return tensor_err(nullptr, "Failed to create tensor of dim %zu", tv.shape.count - 1);
+  }
   Tensor_Iter iter = tensor_iter_init(allocr, ans);
-  (void)tensor_reduce_op(&iter, tv, dim, op);
+  // There could be error, if so, a new error tensor is returned
+  Tensor if_err = tensor_reduce_op(&iter, tv, dim, op);
+  if(if_err.was_err){
+    tensor_free(allocr, &ans);
+    // Need to try on 'if_err' but free 'ans' cuz they are different entities in this branch
+    tensor_try(if_err);
+  }
   tensor_iter_deinit(allocr, &iter);
   return ans;  
 }
