@@ -6,6 +6,7 @@
 #include "viewops.h"
 #include "moreariths.h"
 #include "zerodim.h"
+#include "someerrs.h"
 
 int main(int argc, const char* argv[]){
   TestCase cases[] = {
@@ -15,6 +16,7 @@ int main(int argc, const char* argv[]){
     {.entry_fxn = viewops_run, .test_name = "viewops"},
     {.entry_fxn = arith2_run, .test_name = "morearith"},
     {.entry_fxn = zerodim_run, .test_name = "zerodim"},
+    {.entry_fxn = someerrs_run, .test_name = "someerrs"},
   };
   return run_test(cases, _countof(cases),
 		  "test_outs", "build/tests",

@@ -195,15 +195,17 @@ Tensor tensor_range_(Alloc_Interface allocr, f32 start_val, f32 step_size, Tenso
   return rent;
 }
 
+// TODO:: Make it accept a FILE* as parameter
 void tensor_print(Alloc_Interface allocr, Tensor t){
   if(!tensor_valid(t)){
     // Print the error chain here
-    fprintf(stderr, "Error during tensor creation\n");
+    fprintf(stderr, "Invalid tensor...\n");
     if(t.was_err){
       print_error(stderr, t.err);
     } else {
       fprintf(stderr, "No available error info\n");
     }
+    return;
   }
   Tensor_Iter iter = tensor_iter_init(allocr, t);
   while(tensor_iter_next(&iter)){
