@@ -49,6 +49,15 @@ static bool tensor_valid(Tensor t){
 #define tensor_err(...)						\
   (Tensor){ .was_err = true, .err = new_error(__VA_ARGS__), }
 
+Tensor tensor_wrap_err_(const char* file, const char* func, int lineno,
+			const char* wrapee_str, Tensor wrapee){
+  if(!wrapee.was_err) return wrapee;
+  // Since wrapee is an error, its okay to not 'free' anything inside it
+  return (Tensor){
+    .was_err = true,
+    .err = new_error_(wrapee.err, file, func, lineno, "Error at: %s", wrapee_str),
+  };
+}
 // To be used in all cases in this library before you use the tensor passed by the user
 // TODO:: Make a special compiler macro to ignore all errors 
 #define tensor_try(tnsr)					\

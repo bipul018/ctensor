@@ -97,6 +97,12 @@ uptr tensor_size(Tensor t);
 
 DEF_SLICE(Tensor);
 
+// Function to wrap an 'Tensor' output using a macro to add additional on-site error reporting
+#define tensor_wrap_err(argstr, ...)					\
+  tensor_wrap_err_(__FILE__, __func__, __LINE__, argstr, __VA_ARGS__)
+Tensor tensor_wrap_err_(const char* file, const char* func, int lineno,
+			const char* wrapee_str, Tensor wrappee);
+
 // Declares two functions, with a special first argument, and rest arguments
 //    according to the passed values in __VA_ARGS__
 // First function is suffixed with '_new', and takes in Alloc_Interface as first arg
@@ -111,11 +117,12 @@ DEF_SLICE(Tensor);
   Tensor CONCAT(name, _inp)(Tensor_Iter* out_iter, __VA_ARGS__);
 
 // A helper macro to choose operation that both create and do operation in place
-#define TENSOR_OP_CHOOSE(name, allocr_or_outiter, ...)	\
-  (_Generic((allocr_or_outiter),			\
-	    Alloc_Interface: CONCAT(name, _new),	\
-	    Tensor_Iter*: CONCAT(name, _inp))		\
-   ((allocr_or_outiter), __VA_ARGS__))
+
+#define TENSOR_OP_CHOOSE(name, allocr_or_outiter, ...)		\
+  tensor_wrap_err(STRINGIFY(name)"("#__VA_ARGS__")", _Generic((allocr_or_outiter), \
+			   Alloc_Interface: CONCAT(name, _new),	\
+			   Tensor_Iter*: CONCAT(name, _inp))	\
+		  ((allocr_or_outiter), __VA_ARGS__))
 
 typedef f32 f32_binop(f32 a, f32 b);
 // Some common fp binop functions to be used as fp operation pointers
