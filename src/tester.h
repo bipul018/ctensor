@@ -101,6 +101,8 @@ static char* concat_strings(const char* strings[], size_t count){
   return string;
 }
 
+// TODO:: Maybe dump the error messages with a special 'prefix' even though now they are in same file
+
 static int run_test(TestCase test_cases[], size_t test_case_count, const char* test_dir, const char* temp_test_dir, int argc, const char* argv[]){
   // Take some args
 
@@ -166,15 +168,15 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
     temp_test_dir, "/", test_case, ""
   };
   
-  temp_file_prefix[3] = "_stdout.txt";
+  temp_file_prefix[3] = "_out.txt";
   char* out_file_name =
     concat_strings(temp_file_prefix, 4);
 
-  temp_file_prefix[3] = "_stderr.txt";
-  char* err_file_name =
-    concat_strings(temp_file_prefix, 4);
+  //temp_file_prefix[3] = "_stderr.txt";
+  //char* err_file_name =
+  //  concat_strings(temp_file_prefix, 4);
 
-  if(!out_file_name || !err_file_name){
+  if(!out_file_name /* || !err_file_name */){
     err_and_ret(-1, "Error: Couldnot allocate memory for test %s\n", test_case);
   }
   
@@ -182,16 +184,16 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
   if(!out_file) {
     err_and_ret(-1, "Error: Couldnot open file `%s` for writing test cases\n", out_file_name);
   }
-  FILE* err_file = fopen(err_file_name, "w");
-  if(!err_file) {
-    err_and_ret(-1, "Error: Couldnot open file `%s` for writing test cases\n", err_file_name);
-  }
+  //FILE* err_file = fopen(err_file_name, "w");
+  //if(!err_file) {
+  //  err_and_ret(-1, "Error: Couldnot open file `%s` for writing test cases\n", err_file_name);
+  //}
 
   FILE* old_stdout = stdout;
   FILE* old_stderr = stderr;  
 
   stdout = out_file;
-  stderr = err_file;
+  stderr = out_file; //err_file;
 
   // Disable output file buffering
   //   (This was a very very frustating bug)
@@ -208,20 +210,20 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
 
   // Reopen file for reading
   fclose(out_file);
-  fclose(err_file);
+  //fclose(err_file);
   out_file = fopen(out_file_name, "r");
   if(!out_file) {
     err_and_ret(-1, "Error: Couldnot open file `%s` for reading for test cases\n", out_file_name);
   }
-  err_file = fopen(err_file_name, "r");
-  if(!err_file) {
-    err_and_ret(-1, "Error: Couldnot open file `%s` for reading for test cases\n", err_file_name);
-  }
+  //err_file = fopen(err_file_name, "r");
+  //if(!err_file) {
+  //  err_and_ret(-1, "Error: Couldnot open file `%s` for reading for test cases\n", err_file_name);
+  //}
 
   // If said to echo, echo
   if(also_echo){
     copy_file_stream(stdout, out_file);
-    copy_file_stream(stderr, err_file);
+    //copy_file_stream(stderr, err_file);
   }
 
   if(code != 0){
@@ -231,31 +233,31 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
   // Setup file names to the actual test file
   temp_file_prefix[0] = test_dir;
 
-  temp_file_prefix[3] = "_stdout.txt";
+  temp_file_prefix[3] = "_out.txt";
   char* actual_out_file_name =
     concat_strings(temp_file_prefix, 4);
 
-  temp_file_prefix[3] = "_stderr.txt";
-  char* actual_err_file_name =
-    concat_strings(temp_file_prefix, 4);
+  //temp_file_prefix[3] = "_stderr.txt";
+  //  char* actual_err_file_name =
+  //    concat_strings(temp_file_prefix, 4);
 
   // Now if they are in record mode, copy contents (or file) to new dsts
-  FILE *actual_out_file, *actual_err_file;
+  FILE *actual_out_file;//, *actual_err_file;
   if(record_mode){
     actual_out_file = fopen(actual_out_file_name, "w");
     if(!actual_out_file) {
       err_and_ret(-1, "Error: Couldnot open file `%s` for writing test cases\n", actual_out_file_name);
     }
-    actual_err_file = fopen(actual_err_file_name, "w");
-    if(!actual_err_file) {
-      err_and_ret(-1, "Error: Couldnot open file `%s` for writing test cases\n", actual_err_file_name);
-    }
+    //actual_err_file = fopen(actual_err_file_name, "w");
+    //if(!actual_err_file) {
+    //  err_and_ret(-1, "Error: Couldnot open file `%s` for writing test cases\n", actual_err_file_name);
+      //}
 
-    printf("Recording `%s` and `%s`\n",
-	   actual_out_file_name, actual_err_file_name);
+    printf("Recording `%s`\n",
+	   actual_out_file_name);//, actual_err_file_name);
 
     copy_file_stream(actual_out_file, out_file);
-    copy_file_stream(actual_err_file, err_file);
+    //copy_file_stream(actual_err_file, err_file);
     
   }
   else{
@@ -263,14 +265,14 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
     if(!actual_out_file) {
       err_and_ret(-1, "Error: Couldnot open file `%s` for reading test cases\n", actual_out_file_name);
     }
-    actual_err_file = fopen(actual_err_file_name, "w");
-    if(!actual_err_file) {
-      err_and_ret(-1, "Error: Couldnot open file `%s` for reading test cases\n", actual_err_file_name);
-    }
+    //actual_err_file = fopen(actual_err_file_name, "w");
+    //if(!actual_err_file) {
+    //  err_and_ret(-1, "Error: Couldnot open file `%s` for reading test cases\n", actual_err_file_name);
+    //}
 
     // Now compare contents
-    if(compare_files(actual_out_file, out_file) &&
-       compare_files(actual_err_file, err_file)){
+    if(compare_files(actual_out_file, out_file)/*  && */
+       /* compare_files(actual_err_file, err_file) */){
       printf("Test passed ✅\n");
     } else {
       printf("Test failed ❌\n");
@@ -278,10 +280,10 @@ static int run_test(TestCase test_cases[], size_t test_case_count, const char* t
   }
 
   fclose(actual_out_file);
-  fclose(actual_err_file);
+  //fclose(actual_err_file);
 
   fclose(out_file);
-  fclose(err_file);
+  //fclose(err_file);
 
   return 0;
 }
